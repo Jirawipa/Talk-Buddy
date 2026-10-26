@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Talk Buddy</title>
+<script>try{var t=JSON.parse(localStorage.getItem("tb_theme")||'"light"');if(t!=="auto")document.documentElement.setAttribute("data-theme",t)}catch(e){document.documentElement.setAttribute("data-theme","light")}</script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#1E90FF">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -47,7 +48,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--accent)}
 .app{background:var(--bg)}
 .top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:calc(env(safe-area-inset-top,0px) + 12px) 12px;background:var(--accent);color:var(--accent-ink);border-radius:0 0 22px 22px;box-shadow:0 4px 0 var(--accent-deep)}
-.brand{font:700 23px var(--display);letter-spacing:.3px;display:flex;align-items:center;gap:6px}
+.brand{font:700 23px var(--display);letter-spacing:.3px;display:flex;align-items:center;gap:6px;white-space:nowrap;min-width:0}
+@media (max-width:400px){.brand{font-size:19px}.brand svg{width:28px;height:28px}.stats{gap:5px;font-size:15px}.stats .stat{padding:2px 7px}.avatar-btn .av{width:32px;height:32px;font-size:19px}}
 .brand svg{width:34px;height:34px}
 .stats{display:flex;gap:8px;font:700 17px var(--display);font-variant-numeric:tabular-nums}
 .stats .stat{background:color-mix(in srgb,var(--accent-ink) 22%,transparent);border-radius:999px;padding:3px 10px}
@@ -143,6 +145,8 @@ nav button[aria-current="page"] b{transform:scale(1.15)}
 @keyframes pulse{50%{opacity:.65}}
 .heard{font-size:15px;color:var(--muted);min-height:1.5em}
 .w-ok{color:var(--good);font-weight:600}.w-miss{color:var(--bad);text-decoration:underline wavy}
+.toggle{display:inline-flex;align-items:center;gap:8px;font:600 15px var(--display);color:var(--ink);min-width:0!important}
+.toggle input{width:22px;height:22px;accent-color:var(--accent)}
 .mic.self{background:var(--good-soft);color:var(--good);border-color:var(--good)}
 .linkbtn{border:0;background:none;color:var(--muted);text-decoration:underline;font-size:14px;align-self:center;padding:6px}
 
@@ -366,12 +370,18 @@ select,input[type=text],input[type=password]{font:inherit;color:var(--ink);backg
         <div class="swatches" id="bAcc" role="group" aria-label="ของแต่งตัวบัดดี้"></div>
       </div>
       <div class="panel">
+        <h3>ธีมสี</h3>
+        <div class="row"><div class="seg" role="group" aria-label="ธีมสี"><button type="button" data-th="light">☀️ สว่าง</button><button type="button" data-th="dark">🌙 มืด</button><button type="button" data-th="auto">📱 ตามเครื่อง</button></div></div>
+        <p class="small">ค่าเริ่มต้นเป็นแบบสว่าง สีฟ้าสดใส ถ้าเลือก "ตามเครื่อง" แอปจะมืดเมื่อมือถือเปิดโหมดมืด</p>
+      </div>
+      <div class="panel">
         <h3>เสียง</h3>
         <div class="row"><label for="vStyle">แบบเสียง</label><select id="vStyle"><option value="woman">ผู้หญิง</option><option value="man">ผู้ชาย</option><option value="boy">เด็กผู้ชาย</option><option value="girl">เด็กผู้หญิง</option></select></div>
         <div class="row"><label for="voiceSel">เสียงในเครื่อง</label><select id="voiceSel"></select></div>
         <p class="small">เสียงเด็กใช้เสียงในเครื่องแล้วปรับให้แหลมขึ้น แต่ละเครื่องจะได้เสียงต่างกันเล็กน้อย</p>
         <div class="row"><label for="rateSel">ความเร็ว</label><select id="rateSel"><option value="0.7">ช้ามาก</option><option value="0.85">ช้า</option><option value="1">ปกติ</option></select></div>
-        <div class="row"><button class="btn ghost small" type="button" id="testVoice">🔊 ทดลองเสียง</button></div>
+        <div class="row"><label for="sfxToggle">เสียงตอบถูก/ผิด</label><label class="toggle"><input type="checkbox" id="sfxToggle"><span>เปิดเสียงเย้และคำชม</span></label></div>
+        <div class="row"><button class="btn ghost small" type="button" id="testVoice">🔊 ทดลองเสียง</button><button class="btn ghost small" type="button" id="testGood">🎉 เสียงตอบถูก</button><button class="btn ghost small" type="button" id="testBad">😢 เสียงตอบผิด</button></div>
       </div>
       <div class="panel" id="keyPanel">
         <h3>ครู AI (คุยโต้ตอบ)</h3>
@@ -672,10 +682,32 @@ function pickVoice(g){
 function say(text,rate,styleId){
   if(!("speechSynthesis" in window)||!text)return;
   const st=VSTYLE[styleId||$("vStyle").value]||VSTYLE.woman;
-  speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const v=pickVoice(st.g);
-  if(v){u.voice=v;u.lang=v.lang}else u.lang="en-US";
-  u.pitch=st.pitch;u.rate=(rate||+$("rateSel").value)*(st.rate||1);speechSynthesis.speak(u);
+  speechSynthesis.cancel();const v=pickVoice(st.g);
+  (Array.isArray(text)?text:[text]).forEach((tx,k)=>{const u=new SpeechSynthesisUtterance(tx);
+    if(v){u.voice=v;u.lang=v.lang}else u.lang="en-US";
+    u.pitch=st.pitch;u.rate=(Array.isArray(rate)?rate[k]:rate||+$("rateSel").value)*(st.rate||1);speechSynthesis.speak(u)});
 }
+/* sound effects: built with Web Audio, no files needed */
+let AC=null;
+const sfxOn=()=>LS.get("tb_sfx",true);
+function sfx(kind){
+  if(!sfxOn())return;
+  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume()}catch{return}
+  const t0=AC.currentTime+.02;
+  const note=(f,start,dur,type,vol,glide)=>{const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t0+start);
+    if(glide)o.frequency.exponentialRampToValueAtTime(glide,t0+start+dur);
+    g.gain.setValueAtTime(.0001,t0+start);g.gain.exponentialRampToValueAtTime(vol,t0+start+.02);g.gain.exponentialRampToValueAtTime(.0001,t0+start+dur);
+    o.connect(g);g.connect(AC.destination);o.start(t0+start);o.stop(t0+start+dur+.05)};
+  if(kind==="good"){[523.25,659.25,783.99,1046.5].forEach((f,i)=>note(f,i*.08,.24,"triangle",.22));note(2093,.34,.3,"sine",.06)}
+  else if(kind==="bad"){note(392,0,.3,"sawtooth",.06,370);note(349.2,.32,.3,"sawtooth",.06,330);note(311.1,.64,.6,"sawtooth",.06,247)}
+  else if(kind==="win"){[523.25,659.25,783.99,1046.5,783.99,1046.5].forEach((f,i)=>note(f,i*.13,i===5?.7:.2,"square",.07));[261.6,329.6,392].forEach(f=>note(f,.65,.7,"triangle",.08))}
+}
+const PRAISE=["Good job!","Perfect!","Great!","Awesome!","Well done!","Yay! You got it!","Excellent!","Super!"];
+const OOPS=["Oh no!","Oops!","Not quite.","Almost!"];
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+$("sfxToggle").checked=sfxOn();$("sfxToggle").onchange=()=>LS.set("tb_sfx",$("sfxToggle").checked);
+$("testGood").onclick=()=>{const on=sfxOn();LS.set("tb_sfx",true);sfx("good");LS.set("tb_sfx",on);setTimeout(()=>say(pick(PRAISE),1),420)};
+$("testBad").onclick=()=>{const on=sfxOn();LS.set("tb_sfx",true);sfx("bad");LS.set("tb_sfx",on);setTimeout(()=>say(pick(OOPS),1),1050)};
 $("testVoice").onclick=()=>say("Hello! I am your English buddy. Let's learn together!");
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 function listen(lang,onText,onEnd,onErr){
@@ -906,7 +938,10 @@ function showResult(ok,title,detail){
   }else if(ok){L.xpEarned+=it.t==="speak"||it.t==="sayword"?3:2}
   const cls=ok===false?"bad":ok?"good":"";
   setFoot(`<div class="verdict-row">${mascot(ok===false?"sad":ok?"cheer":"happy")}<div class="verdict">${esc(title)}${detail?`<small>${detail.includes("<")?detail:esc(detail)}</small>`:""}</div></div><button class="btn ${ok===false?"bad":"good"}" type="button" id="nextBtn">ต่อไป</button>`,cls);
-  if(ok===false&&(it.w||it.s||it.d))say(it.w?it.w[0]:it.s?it.s[0]:it.d[it.i][1]);
+  const answerText=it.w?it.w[0]:it.s?it.s[0]:it.d?it.d[it.i][1]:"";
+  window.speechSynthesis&&speechSynthesis.cancel();clearTimeout(L.sayT);
+  if(ok===true){sfx("good");L.sayT=setTimeout(()=>say(pick(PRAISE),1),sfxOn()?420:0)}
+  else if(ok===false){sfx("bad");L.sayT=setTimeout(()=>say(answerText?[pick(OOPS),answerText]:pick(OOPS),[1,+$("rateSel").value]),sfxOn()?1050:0)}
   $("nextBtn").focus();
 }
 function finishLesson(){
@@ -919,7 +954,7 @@ function finishLesson(){
     <p class="sub" style="margin:0">${L.kind==="unit"?`บทที่ ${L.ui+1} ${esc(u.title)} · ${esc(STEPS[L.step].t)}${passed?" · ปลดล็อกบทถัดไปแล้ว":""}`:L.kind==="vocab"?`ชุดคำศัพท์ ${esc(u.title)} · จำได้ ${u.words.filter(w=>known(w[0])).length}/${u.words.length} คำ`:"ทบทวนคำศัพท์เสร็จแล้ว"}</p>
     <div class="tiles"><div class="tile">+${gain}<small>XP</small></div><div class="tile">🔥 ${p.streak}<small>วันติดกัน</small></div><div class="tile">${L.mistakes}<small>ข้อที่ผิด</small></div></div></div>`;
   setFoot(`<button class="btn" type="button" id="doneBtn">กลับหน้าหลัก</button>`,"");
-  say(perfect?"Perfect! Great job!":"Well done!");
+  sfx("win");setTimeout(()=>say(perfect?"Perfect! Great job!":"Well done! You finished the lesson!",1),sfxOn()?950:0);
 }
 $("footIn").addEventListener("click",e=>{
   const id=e.target.closest("button")?.id;
@@ -1212,6 +1247,17 @@ if(!standalone&&!inClaude){
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;$("installBanner").hidden=false});
 $("installBtn").onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice.catch(()=>{});deferred=null;$("installBanner").hidden=true};
 if("serviceWorker" in navigator&&location.protocol.startsWith("http")&&!inClaude){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+
+/* ================= theme ================= */
+function applyTheme(){
+  const t=LS.get("tb_theme","light"),root=document.documentElement;
+  if(t==="auto")root.removeAttribute("data-theme");else root.setAttribute("data-theme",t);
+  document.querySelectorAll("[data-th]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.th===t));
+  const dark=t==="dark"||(t==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);
+  const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=dark?"#0A1A33":"#1E90FF";
+}
+document.querySelectorAll("[data-th]").forEach(b=>b.onclick=()=>{LS.set("tb_theme",b.dataset.th);applyTheme()});
+applyTheme();
 
 /* ================= boot ================= */
 $("buddyHi").innerHTML=mascot("wave");$("brand").insertAdjacentHTML("afterbegin",mascot("happy"));
