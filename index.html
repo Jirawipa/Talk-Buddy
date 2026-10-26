@@ -177,7 +177,9 @@ nav button[aria-current="page"] b{transform:scale(1.15)}
 .node.test{border-radius:22px}
 .node.test:not(.locked):not(.done){background:var(--sun);box-shadow:0 6px 0 var(--sun-deep)}
 .mascot{height:auto}
-.blank{display:inline-block;color:var(--accent);border-bottom:3px solid var(--accent);letter-spacing:-2px}
+.blank{display:inline-block;color:var(--accent);border-bottom:3px solid var(--accent);letter-spacing:-2px;min-width:3ch;text-align:center}
+.blank.filled{letter-spacing:0;color:var(--ink);background:var(--soft);border-radius:8px 8px 0 0;padding:0 6px;animation:drop .3s ease-out}
+@keyframes drop{0%{transform:translateY(-14px);opacity:0}70%{transform:translateY(2px)}100%{transform:none;opacity:1}}
 .card .word.sentence{font-size:22px;line-height:1.5}
 .dlg{display:flex;flex-direction:column;gap:10px}
 .dl{display:flex;gap:8px;align-items:flex-end;max-width:92%}
@@ -278,6 +280,52 @@ select,input[type=text],input[type=password]{font:inherit;color:var(--ink);backg
 .pchip[aria-pressed="true"]{border-color:var(--accent);background:var(--soft)}
 .small{font-size:13px;color:var(--muted);margin:0}
 .danger{color:var(--bad)}
+/* ===== responsive: tablet / desktop ===== */
+@media (min-width:900px){
+  .app{max-width:1120px;display:grid;grid-template-columns:110px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  .top{grid-column:1/-1}
+  main{grid-row:2;grid-column:2;padding-inline:28px}
+  nav{grid-row:2;grid-column:1;flex-direction:column;justify-content:flex-start;gap:6px;border-top:0;border-right:2px solid var(--line);padding:16px 0 0;background:var(--surface)}
+  nav button{flex:none;padding:12px 4px;border-radius:14px;margin:0 8px}
+  nav button[aria-current="page"]{background:var(--soft)}
+  #path,#learnView .banner{max-width:680px;margin-inline:auto}
+  #learnView .banner{margin-bottom:18px}
+  .packs{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+  #meView{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;align-items:start}
+  .lesson-in,.foot-in{max-width:760px}
+}
+/* ===== responsive: phone held sideways (short landscape) ===== */
+@media (orientation:landscape) and (max-height:540px){
+  .app{max-width:960px}
+  #path,#learnView .banner{max-width:640px;margin-inline:auto}
+  .lesson-in,.foot-in{max-width:900px}
+  .top{padding-block:calc(env(safe-area-inset-top,0px) + 4px) 4px;border-radius:0 0 14px 14px;box-shadow:0 3px 0 var(--accent-deep)}
+  .brand{font-size:18px}.brand svg{width:26px;height:26px}
+  main{padding-block:10px 12px}
+  .buddy-hi .mascot{width:50px}
+  nav button{padding:4px;flex-direction:row;justify-content:center;gap:6px;font-size:13px}
+  nav button b{font-size:18px}
+  .lbar{padding-block:4px}
+  .lbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 16px;align-content:start;padding-block:4px 10px}
+  .lbody > .q{grid-column:1/-1;font-size:20px}
+  .lbody > .sub{grid-column:1/-1}
+  .lbody > *:not(.q):not(.sub):not(.card):not(.dlg):not(.match):not(.done-screen){grid-column:2}
+  .lbody > .card,.lbody > .dlg{grid-column:1;grid-row:2/span 5;align-self:start}
+  .lbody > .say.big{grid-column:1;grid-row:2;width:64px;height:64px;font-size:30px;justify-self:center}
+  .lbody > .say.big + .linkbtn{grid-column:1;grid-row:3}
+  .lbody > .match,.lbody > .done-screen{grid-column:1/-1}
+  .opt{padding:10px 8px;font-size:17px}
+  .mic{padding:12px}
+  .foot{padding-block:6px calc(6px + env(safe-area-inset-bottom,0px))}
+  .foot-in{flex-direction:row;align-items:center;flex-wrap:wrap}
+  .foot-in > .btn{width:auto;min-width:220px;margin-left:auto}
+  .verdict-row{flex:1;min-width:0}
+  .verdict-row .mascot{width:40px}
+  .verdict{font-size:18px}
+  .done-screen{flex-direction:row;flex-wrap:wrap;justify-content:center}
+  .done-screen .mascot{width:90px}
+  #chatLog{min-height:120px}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -385,8 +433,10 @@ select,input[type=text],input[type=password]{font:inherit;color:var(--ink);backg
       </div>
       <div class="panel" id="keyPanel">
         <h3>ครู AI (คุยโต้ตอบ)</h3>
-        <p class="small" id="keyHelp">ใส่ Claude API key เพื่อคุยกับครู AI key เก็บอยู่ในเครื่องนี้เท่านั้น บทเรียนใช้ได้ฟรีโดยไม่ต้องมี key</p>
-        <div class="row"><input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" aria-label="Claude API key"><button class="btn small" type="button" id="saveKey">บันทึก</button></div>
+        <p class="small" id="keyHelp">ไม่ใส่ key ก็คุยได้ในโหมด "ฝึกคุยกับบัดดี้" ที่ใช้บทสนทนาในบทเรียน ถ้าอยากให้ AI คุยได้ทุกเรื่อง ใส่ key อย่างใดอย่างหนึ่ง key เก็บอยู่ในเครื่องนี้เท่านั้น</p>
+        <div class="row"><label for="aiProv">ผู้ให้บริการ</label><select id="aiProv"><option value="gemini">Google Gemini (มีแบบฟรี)</option><option value="claude">Claude (จ่ายตามการใช้)</option></select></div>
+        <div class="row"><input type="password" id="apiKey" placeholder="วาง API key ที่นี่" autocomplete="off" aria-label="API key"><button class="btn small" type="button" id="saveKey">บันทึก</button></div>
+        <p class="small" id="provHelp"></p>
       </div>
       <div class="panel">
         <h3>ข้อมูลการเรียน</h3>
@@ -807,7 +857,7 @@ function renderItem(){
       <div class="answer spell" id="answer" aria-label="คำตอบ"></div><div class="bank" id="bank">${bank.map((c,i)=>`<button class="chip letter" type="button" data-b="${i}">${c}</button>`).join("")}</div>`;
   }else if(it.t==="fill"){
     const toks=it.s[0].split(/\s+/);
-    const shown=toks.map((t,k)=>k===it.idx?`<span class="blank">${"＿".repeat(Math.max(3,Math.min(6,it.target.length)))}</span>${esc(t.replace(/^[A-Za-z']+/,""))}`:esc(t)).join(" ");
+    const shown=toks.map((t,k)=>k===it.idx?`<span class="blank" id="blank">${"＿".repeat(Math.max(3,Math.min(6,it.target.length)))}</span>${esc(t.replace(/^[A-Za-z']+/,""))}`:esc(t)).join(" ");
     const pool=[...new Set([...units().flatMap(x=>x.words.map(w=>w[0])),...units().flatMap(x=>x.sents.flatMap(q=>q[0].split(/\s+/)))].map(x=>x.replace(/[^A-Za-z']/g,"").toLowerCase()).filter(x=>x&&!x.includes(" ")&&x!==it.target))];
     const opts=shuffle([it.target,...shuffle(pool).slice(0,3)]);
     B.innerHTML=`<h2 class="q">เติมคำที่หายไป</h2><div class="card"><div style="min-width:0"><div class="word sentence">${shown}</div><div class="th">${esc(it.s[1])}</div></div></div>
@@ -862,7 +912,8 @@ $("lbody").addEventListener("click",e=>{
   const slow=e.target.closest("[data-slow]");if(slow){say(slow.dataset.slow,0.6);return}
   const it=L.items[L.idx];
   const opt=e.target.closest(".opt[data-v]");
-  if(opt){$("lbody").querySelectorAll(".opt[data-v]").forEach(o=>o.setAttribute("aria-pressed",o===opt));enableCheck(opt.dataset.v);if(it.t==="listen"||it.t==="reverse")say(opt.dataset.v);return}
+  if(opt){$("lbody").querySelectorAll(".opt[data-v]").forEach(o=>o.setAttribute("aria-pressed",o===opt));enableCheck(opt.dataset.v);if(it.t==="listen"||it.t==="reverse"||it.t==="fill")say(opt.dataset.v);
+    if(it.t==="fill"){const bl=$("blank"),v=opt.dataset.v;bl.textContent=it.idx===0?v.charAt(0).toUpperCase()+v.slice(1):v;bl.classList.remove("filled");void bl.offsetWidth;bl.classList.add("filled")}return}
   const m=e.target.closest(".opt[data-m]");
   if(m){matchTap(m);return}
   const b=e.target.closest("[data-b]");
@@ -1082,7 +1133,18 @@ function renderWordList(){
 
 /* ================= AI chat ================= */
 let turns=[],chatBusy=false,sample=null;
-const apiKey=()=>LS.get("tb_key","");
+const prov=()=>LS.get("tb_prov","gemini");
+const apiKey=()=>LS.get(prov()==="gemini"?"tb_gkey":"tb_key","");
+const aiReady=()=>!!sample||!!apiKey();
+let gModel=null;
+async function geminiModel(){
+  if(gModel)return gModel;
+  try{const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=100&key="+encodeURIComponent(apiKey()));const j=await r.json();
+    const ok=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")&&/flash/i.test(m.name)&&!/lite|image|tts|audio|live|thinking|exp/i.test(m.name));
+    ok.sort((a,b)=>b.name.localeCompare(a.name,undefined,{numeric:true}));gModel=(ok[0]&&ok[0].name)||"models/gemini-flash-latest";
+  }catch{gModel="models/gemini-flash-latest"}
+  return gModel;
+}
 function chatRules(){
   const p=P(),u=units()[+$("chatUnit").value]||units()[0],kid=p.track==="kid";
   return `You are a warm, patient English tutor for a Thai learner. ${kid?`The learner is a Thai child in primary grade ${p.grade} (ป.${p.grade}). Use very simple words for that grade and a playful, friendly tone.`:`The learner is a Thai adult BEGINNER. Use very short, simple sentences (max 8 words).`}
@@ -1115,8 +1177,43 @@ function botHtml(o,star){
    (o.fix||o.tip?`<div class="fix">${o.fix?`<b>ลองพูดแบบนี้:</b> ${esc(o.fix)}${o.fixth?`<span class="th">${esc(o.fixth)}</span>`:""}`:""}${o.tip?`${o.fix?"<br>":""}${esc(o.tip)}`:""}</div>`:"")+
    `<div class="tools"><button type="button" data-say="${esc(o.reply)}">🔊 ฟังอีกครั้ง</button>${o.fix?`<button type="button" data-say="${esc(o.fix)}">🔊 ฟังประโยคที่ถูก</button>`:""}${star?`<span style="color:var(--sun);font:500 13px var(--display)">+2 XP เก่งมาก!</span>`:""}</div>`;
 }
+/* ---- free scripted practice with Buddy (no AI key needed) ---- */
+let SC=null;
+const hasThai=t=>/[\u0E00-\u0E7F]/.test(t);
+function scMatch(said,target){const a=norm(said),b=norm(target);if(!b.length)return 0;let hit=0;b.forEach(x=>{if(heardHas(a,x))hit++});return hit/b.length}
+function scBuddy(en,th){addMsg(false,`<div class="bubble">${esc(en)}<span class="th">${esc(th)}</span></div><div class="tools"><button type="button" data-say="${esc(en)}">🔊 ฟังอีกครั้ง</button></div>`);say(en)}
+function scNext(){
+  const d=SC.d;
+  while(SC.i<d.length&&d[SC.i][0]==="A"){const l=d[SC.i];scBuddy(l[1],l[2]);SC.i++}
+  if(SC.i>=d.length){addMsg(false,`<div class="fix"><b>จบบทสนทนาแล้ว เก่งมาก! 🎉</b><br>เลือกหัวข้ออื่นด้านบน หรือ <button type="button" class="chip" id="scAgain">คุยเรื่องนี้อีกรอบ</button></div>`);
+    $("scAgain").onclick=startChat;sfx("win");$("chatNote").className="note";$("chatNote").textContent="จบบทสนทนาแล้ว";SC.done=true;return}
+  SC.tries=0;
+  addMsg(false,`<div class="fix">ถึงตาคุณแล้ว ตอบเป็นภาษาอังกฤษ <button type="button" class="chip" data-hint="1">💡 ใบ้</button></div>`);
+  $("chatNote").className="note";$("chatNote").textContent="พิมพ์หรือกดไมค์ตอบเป็นภาษาอังกฤษ ไม่รู้จะพูดอะไรกด 💡 ใบ้";
+}
+function scReply(text){
+  const want=SC.d[SC.i];if(!want||SC.done){startChat();return}
+  if(hasThai(text)){addMsg(false,`<div class="fix"><b>ภาษาอังกฤษพูดว่า:</b> ${esc(want[1])}<span class="th">${esc(want[2])}</span></div><div class="tools"><button type="button" data-say="${esc(want[1])}">🔊 ฟัง</button></div>`);say(want[1]);$("chatNote").textContent="ลองพิมพ์หรือพูดตามประโยคนี้ดูนะ";return}
+  const score=scMatch(text,want[1]);
+  if(score>=.7){sfx("good");const p=P();p.xp+=2;const t=today();if(p.daily.day!==t)p.daily={day:t,xp:0};p.daily.xp+=2;save();renderStats();
+    addMsg(false,`<div class="fix"><b>${pick(["เก่งมาก!","ถูกต้อง!","เยี่ยมเลย!"])}</b> +2 XP${score<1?`<br>ประโยคเต็มคือ: ${esc(want[1])}`:""}</div>`);
+    SC.i++;setTimeout(()=>{say(pick(PRAISE),1);setTimeout(scNext,900)},400);return}
+  SC.tries++;sfx("bad");
+  if(SC.tries>=2){addMsg(false,`<div class="fix"><b>ไม่เป็นไรนะ</b> ประโยคนี้พูดว่า: ${esc(want[1])}<span class="th">${esc(want[2])}</span></div>`);SC.i++;setTimeout(()=>{say(want[1]);setTimeout(scNext,1600)},500);return}
+  addMsg(false,`<div class="fix"><b>เกือบแล้ว!</b> ลองพูดแบบนี้: ${esc(want[1])}<span class="th">${esc(want[2])}</span></div><div class="tools"><button type="button" data-say="${esc(want[1])}">🔊 ฟัง</button></div>`);
+  setTimeout(()=>say(want[1]),1000);$("chatNote").textContent="ลองอีกครั้งนะ";
+}
+function startScripted(){
+  const u=units()[+$("chatUnit").value]||units()[0];
+  SC={d:u.dlg||[],i:0,tries:0,done:false};
+  addMsg(false,`<div class="fix"><b>โหมดฝึกคุยกับบัดดี้ (ฟรี)</b><br>ฝึกบทสนทนาเรื่อง${esc(u.title)} บัดดี้จะพูดก่อน แล้วให้คุณตอบ ถ้าอยากให้ AI คุยได้ทุกเรื่อง ใส่ API key ที่แท็บ "ฉัน" นะ</div>`);
+  if(SC.d.length&&SC.d[0][0]==="B")scBuddy("Let's start! You speak first.","เริ่มเลย คุณพูดก่อนนะ");
+  scNext();
+}
+$("chatLog").addEventListener("click",e=>{const h=e.target.closest("[data-hint]");if(!h||!SC)return;const w=SC.d[SC.i];if(w){h.outerHTML=`<span class="th" style="display:block">ใบ้: ${esc(w[1])} (${esc(w[2])})</span>`;say(w[1])}});
 function startChat(){
-  turns=[];$("chatLog").innerHTML="";const p=P(),u=units()[+$("chatUnit").value]||units()[0];
+  turns=[];$("chatLog").innerHTML="";SC=null;
+  if(!aiReady()){startScripted();return}const p=P(),u=units()[+$("chatUnit").value]||units()[0];
   const hello=p.track==="kid"
     ?{reply:`Hi ${p.name}! Let's talk about ${u.en.toLowerCase()}! Are you ready?`,th:`สวัสดี ${p.name}! มาคุยเรื่อง${u.title}กันนะ พร้อมไหม?`,tip:"ตอบว่า Yes, I am! ได้เลยนะ"}
     :{reply:"Hello! How are you today?",th:"สวัสดีค่ะ วันนี้เป็นยังไงบ้าง?",tip:"ตอบง่ายๆ ว่า I am fine. หรือ I am tired. ก็ได้ค่ะ"};
@@ -1129,6 +1226,14 @@ function renderChatUnits(){
 $("chatUnit").onchange=startChat;
 async function askAI(messages){
   if(sample){const {text}=await sample(messages,{modelTier:"quick",cache:false});return text}
+  if(prov()==="gemini"){
+    const model=await geminiModel();
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/${model}:generateContent?key=${encodeURIComponent(apiKey())}`,{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({contents:messages.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]})),generationConfig:{maxOutputTokens:600,temperature:.7}})});
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok){const e=new Error(j.error?.message||res.statusText);e.status=res.status===400&&/API key/i.test(j.error?.message||"")?401:res.status;throw e}
+    return (j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");
+  }
   const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":apiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
     body:JSON.stringify({model:"claude-haiku-5-5",max_tokens:500,messages})});
   const j=await res.json().catch(()=>({}));
@@ -1138,7 +1243,8 @@ async function askAI(messages){
 async function sendChat(text){
   text=text.trim();if(!text||chatBusy)return;
   addMsg(true,`<div class="bubble">${esc(text)}</div>`);$("chatInput").value="";
-  if(!sample&&!apiKey()){addMsg(false,`<div class="fix"><b>ยังคุยกับครู AI ไม่ได้</b> ต้องใส่ Claude API key ก่อน ที่แท็บ "ฉัน" ค่ะ ระหว่างนี้ไปเรียนบทเรียนได้ฟรีเลยนะ</div>`);return}
+  if(SC){scReply(text);return}
+  if(!aiReady()){startScripted();return}
   chatBusy=true;turns.push({role:"user",content:text});
   const el=addMsg(false,`<div class="bubble" style="color:var(--muted);font-style:italic">กำลังคิด…</div>`);
   try{
@@ -1159,7 +1265,7 @@ $("chatMic").onclick=()=>{
   if(chatRec){chatRec.stop();return}
   $("chatMic").classList.add("on");$("chatNote").className="note";$("chatNote").textContent=$("micLang").value==="th-TH"?"กำลังฟัง… พูดภาษาไทยได้เลย":"กำลังฟัง… พูดภาษาอังกฤษได้เลย";
   chatRec=listen($("micLang").value,(t,fin)=>{$("chatInput").value=t;if(fin){chatRec&&chatRec.stop();sendChat(t)}},
-    ()=>{chatRec=null;$("chatMic").classList.remove("on")},err=>{$("chatNote").className="note warn";$("chatNote").textContent=micMsg(err)});
+    ()=>{chatRec=null;$("chatMic").classList.remove("on");if(/กำลังฟัง/.test($("chatNote").textContent))$("chatNote").textContent="แตะไมค์เพื่อพูดอีกครั้ง หรือพิมพ์ตอบก็ได้"},err=>{$("chatNote").className="note warn";$("chatNote").textContent=micMsg(err)});
 };
 
 /* ================= me / settings ================= */
@@ -1178,7 +1284,7 @@ function renderMe(){
   $("profileList").innerHTML=profiles.map(x=>`<button class="pchip" type="button" data-p="${x.id}" aria-pressed="${x.id===p.id}">${avatarHtml(x)}${esc(x.name)}</button>`).join("");
   draft={track:p.track};$("pName").value=p.name;$("pGrade").value=p.grade;showDraft();
   $("delProfile").disabled=profiles.length<2;$("delProfile").title=profiles.length<2?"ต้องมีผู้เรียนอย่างน้อย 1 คน":"";$("delRow").hidden=true;
-  $("apiKey").value=apiKey();
+  $("aiProv").value=prov();$("apiKey").value=apiKey();showProvHelp();
   if(sample){$("keyHelp").textContent="เปิดอยู่ในแอป Claude ครู AI ใช้บัญชี Claude ของคุณได้เลย ไม่ต้องใส่ key";}
   const done=units().filter(u=>uprog(u)>=STEPS.length).length;
   $("statsText").textContent=`เรียนไปแล้ว ${p.lessons||0} บทเรียน · ผ่าน ${done} จาก ${units().length} บท · จำคำศัพท์ได้ ${Object.values(p.words||{}).filter(r=>r.b>=2).length} คำ · XP รวม ${p.xp} · เรียนต่อเนื่องสูงสุดตอนนี้ ${p.streak} วัน`;
@@ -1220,7 +1326,9 @@ $("delProfile").onclick=()=>{
   $("delNo").onclick=()=>{$("delRow").hidden=true};
 };
 $("addProfile").onclick=()=>{const p=newProfile("ผู้เรียนใหม่","kid");profiles.push(p);activeId=p.id;save();refreshAll();$("saveNote").className="save-note warn";$("saveNote").textContent="ตั้งชื่อแล้วกดบันทึกนะ";$("pName").focus();$("pName").select()};
-$("saveKey").onclick=()=>{LS.set("tb_key",$("apiKey").value.trim());$("keyHelp").textContent="บันทึก key แล้ว ไปที่แท็บ \"คุยกับครู\" ได้เลยค่ะ"};
+function showProvHelp(){$("provHelp").textContent=prov()==="gemini"?"ขอ key ฟรีที่ aistudio.google.com กด Get API key แล้ว Create API key ไม่ต้องใช้บัตรเครดิต แบบฟรีมีจำกัดจำนวนครั้งต่อวัน และ Google อาจนำข้อความที่คุยไปใช้ปรับปรุงบริการ อย่าพิมพ์ข้อมูลส่วนตัวนะคะ":"สมัครที่ console.anthropic.com เติมเครดิตแล้วสร้าง key คิดเงินตามการใช้งาน"}
+$("aiProv").onchange=()=>{LS.set("tb_prov",$("aiProv").value);$("apiKey").value=apiKey();showProvHelp()};
+$("saveKey").onclick=()=>{LS.set(prov()==="gemini"?"tb_gkey":"tb_key",$("apiKey").value.trim());$("keyHelp").textContent="บันทึก key แล้ว ไปที่แท็บ \"คุยกับครู\" ได้เลยค่ะ";startChat()};
 
 /* ================= tabs ================= */
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
