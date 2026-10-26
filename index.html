@@ -62,7 +62,7 @@ main{flex:1;min-height:0;overflow-y:auto;padding-block:18px 24px;
   background:radial-gradient(70px 26px at 12% 60px,var(--cloud) 97%,transparent 100%),radial-gradient(46px 20px at 20% 48px,var(--cloud) 97%,transparent 100%),
   radial-gradient(80px 28px at 88% 340px,var(--cloud) 97%,transparent 100%),radial-gradient(50px 22px at 80% 326px,var(--cloud) 97%,transparent 100%),
   radial-gradient(64px 24px at 10% 720px,var(--cloud) 97%,transparent 100%);background-attachment:local}
-.view[hidden]{display:none}
+.view[hidden]{display:none!important}
 
 /* path */
 .unit{margin-bottom:28px}
@@ -291,7 +291,7 @@ select,input[type=text],input[type=password]{font:inherit;color:var(--ink);backg
   #path,#learnView .banner{max-width:680px;margin-inline:auto}
   #learnView .banner{margin-bottom:18px}
   .packs{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
-  #meView{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;align-items:start}
+  #meView:not([hidden]){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;align-items:start}
   .lesson-in,.foot-in{max-width:760px}
 }
 /* ===== responsive: phone held sideways (short landscape) ===== */
@@ -1136,14 +1136,18 @@ let turns=[],chatBusy=false,sample=null;
 const prov=()=>LS.get("tb_prov","gemini");
 const apiKey=()=>LS.get(prov()==="gemini"?"tb_gkey":"tb_key","");
 const aiReady=()=>!!sample||!!apiKey();
-let gModel=null;
-async function geminiModel(){
-  if(gModel)return gModel;
-  try{const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=100&key="+encodeURIComponent(apiKey()));const j=await r.json();
-    const ok=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")&&/flash/i.test(m.name)&&!/lite|image|tts|audio|live|thinking|exp/i.test(m.name));
-    ok.sort((a,b)=>b.name.localeCompare(a.name,undefined,{numeric:true}));gModel=(ok[0]&&ok[0].name)||"models/gemini-flash-latest";
-  }catch{gModel="models/gemini-flash-latest"}
-  return gModel;
+let gList=null;
+async function geminiCandidates(){
+  if(gList)return gList;
+  const saved=LS.get("tb_gmodel","");let names=[];
+  try{const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",{headers:{"x-goog-api-key":apiKey()}});const j=await r.json();
+    names=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")&&/gemini/i.test(m.name)&&/flash/i.test(m.name)&&!/image|tts|audio|live|thinking|exp|embedding|computer/i.test(m.name)).map(m=>m.name);
+  }catch{}
+  const score=n=>(/latest/.test(n)?0:/preview/.test(n)?2:1)+(/lite/.test(n)?0.5:0);
+  names.sort((a,b)=>score(a)-score(b)||b.localeCompare(a,undefined,{numeric:true}));
+  ["models/gemini-flash-latest","models/gemini-flash-lite-latest"].forEach(n=>{if(!names.includes(n))names.push(n)});
+  if(saved&&names.includes(saved))names=[saved,...names.filter(n=>n!==saved)];
+  return gList=names.slice(0,8);
 }
 function chatRules(){
   const p=P(),u=units()[+$("chatUnit").value]||units()[0],kid=p.track==="kid";
@@ -1227,12 +1231,18 @@ $("chatUnit").onchange=startChat;
 async function askAI(messages){
   if(sample){const {text}=await sample(messages,{modelTier:"quick",cache:false});return text}
   if(prov()==="gemini"){
-    const model=await geminiModel();
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/${model}:generateContent?key=${encodeURIComponent(apiKey())}`,{method:"POST",headers:{"content-type":"application/json"},
-      body:JSON.stringify({contents:messages.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]})),generationConfig:{maxOutputTokens:600,temperature:.7}})});
-    const j=await res.json().catch(()=>({}));
-    if(!res.ok){const e=new Error(j.error?.message||res.statusText);e.status=res.status===400&&/API key/i.test(j.error?.message||"")?401:res.status;throw e}
-    return (j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");
+    const body=JSON.stringify({contents:messages.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]})),generationConfig:{maxOutputTokens:800,temperature:.7}});
+    let lastErr=null;
+    for(const model of await geminiCandidates()){
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/${model}:generateContent`,{method:"POST",headers:{"content-type":"application/json","x-goog-api-key":apiKey()},body});
+      const j=await res.json().catch(()=>({}));
+      if(res.ok){LS.set("tb_gmodel",model);const t=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");if(t)return t;lastErr=new Error("empty");continue}
+      const msg=j.error?.message||res.statusText;lastErr=new Error(msg);lastErr.status=res.status===400&&/API key/i.test(msg)?401:res.status;if(/ACCESS_TOKEN_TYPE_UNSUPPORTED|UNAUTHENTICATED/i.test(JSON.stringify(j)))lastErr.status=401;lastErr.model=model;
+      if(lastErr.status===401||lastErr.status===403)break;
+      const perMinute=res.status===429&&/minute|retry in|RetryInfo/i.test(msg)&&!/limit: 0/.test(msg);
+      if(perMinute)break;
+    }
+    throw lastErr||new Error("no model");
   }
   const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":apiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
     body:JSON.stringify({model:"claude-haiku-5-5",max_tokens:500,messages})});
@@ -1253,7 +1263,9 @@ async function sendChat(text){
     el.innerHTML=botHtml(o,o.star);say(o.reply);$("chatNote").className="note";$("chatNote").textContent="ถึงตาคุณแล้ว พิมพ์หรือกดไมค์ตอบได้เลย";
   }catch(e){
     turns.pop();el.remove();$("chatNote").className="note warn";
-    $("chatNote").textContent=e.code==="not_granted"?"ต้องกดอนุญาตให้หน้านี้ใช้ Claude ก่อนค่ะ":e.status===401?"API key ไม่ถูกต้อง ตรวจที่แท็บ \"ฉัน\" อีกครั้งนะคะ":e.status===429||e.code==="rate_limited"?"ส่งถี่เกินไป รอสักครู่แล้วลองใหม่นะคะ":"ครูตอบไม่ได้ตอนนี้ ลองส่งใหม่อีกครั้งนะคะ";
+    $("chatNote").textContent=e.code==="not_granted"?"ต้องกดอนุญาตให้หน้านี้ใช้ Claude ก่อนค่ะ":e.status===401?"API key ไม่ถูกต้อง ตรวจที่แท็บ \"ฉัน\" อีกครั้งนะคะ":e.status===429||e.code==="rate_limited"?(/per ?day|daily|PerDay/i.test(e.message||"")?"ใช้โควตาฟรีของวันนี้ครบแล้ว พรุ่งนี้คุยต่อได้ หรือฝึกในเมนูเรียนไปก่อนนะ":"ส่งถี่เกินไปหรือโควตาฟรีเต็ม รอ 1 นาทีแล้วลองใหม่นะคะ"):e.status===403?"key นี้ยังใช้ Gemini ไม่ได้ ลองสร้าง key ใหม่ที่ aistudio.google.com/apikey":"ครูตอบไม่ได้ตอนนี้ ลองส่งใหม่อีกครั้งนะคะ";
+    if(e.message&&e.message!=="empty")$("chatNote").title=e.message;
+    if(prov()==="gemini"&&e.message)addMsg(false,`<div class="fix"><b>รายละเอียดจาก Google:</b> <span class="th">${esc(String(e.message).slice(0,220))}</span></div>`);
   }finally{chatBusy=false}
 }
 $("chatForm").onsubmit=e=>{e.preventDefault();sendChat($("chatInput").value)};
@@ -1326,9 +1338,19 @@ $("delProfile").onclick=()=>{
   $("delNo").onclick=()=>{$("delRow").hidden=true};
 };
 $("addProfile").onclick=()=>{const p=newProfile("ผู้เรียนใหม่","kid");profiles.push(p);activeId=p.id;save();refreshAll();$("saveNote").className="save-note warn";$("saveNote").textContent="ตั้งชื่อแล้วกดบันทึกนะ";$("pName").focus();$("pName").select()};
-function showProvHelp(){$("provHelp").textContent=prov()==="gemini"?"ขอ key ฟรีที่ aistudio.google.com กด Get API key แล้ว Create API key ไม่ต้องใช้บัตรเครดิต แบบฟรีมีจำกัดจำนวนครั้งต่อวัน และ Google อาจนำข้อความที่คุยไปใช้ปรับปรุงบริการ อย่าพิมพ์ข้อมูลส่วนตัวนะคะ":"สมัครที่ console.anthropic.com เติมเครดิตแล้วสร้าง key คิดเงินตามการใช้งาน"}
+function showProvHelp(){$("provHelp").textContent=prov()==="gemini"?"ขอ key ฟรีที่ aistudio.google.com/apikey กด Create API key ไม่ต้องใช้บัตรเครดิต (key ใหม่ของ Google ขึ้นต้นด้วย AQ. ใช้ได้) แบบฟรีมีจำกัดจำนวนครั้งต่อวัน และ Google อาจนำข้อความที่คุยไปใช้ปรับปรุงบริการ อย่าพิมพ์ข้อมูลส่วนตัวนะคะ":"สมัครที่ console.anthropic.com เติมเครดิตแล้วสร้าง key คิดเงินตามการใช้งาน"}
 $("aiProv").onchange=()=>{LS.set("tb_prov",$("aiProv").value);$("apiKey").value=apiKey();showProvHelp()};
-$("saveKey").onclick=()=>{LS.set(prov()==="gemini"?"tb_gkey":"tb_key",$("apiKey").value.trim());$("keyHelp").textContent="บันทึก key แล้ว ไปที่แท็บ \"คุยกับครู\" ได้เลยค่ะ";startChat()};
+$("saveKey").onclick=async()=>{
+  const k=$("apiKey").value.replace(/\s+/g,"");
+  if(/^(AIza|AQ\.)/.test(k)&&prov()!=="gemini"){LS.set("tb_prov","gemini");$("aiProv").value="gemini";showProvHelp()}
+  else if(/^sk-ant-/.test(k)&&prov()!=="claude"){LS.set("tb_prov","claude");$("aiProv").value="claude";showProvHelp()}
+  LS.set(prov()==="gemini"?"tb_gkey":"tb_key",k);$("apiKey").value=k;gList=null;LS.set("tb_gmodel","");
+  if(!k){$("keyHelp").textContent="ลบ key แล้ว คุยกับบัดดี้แบบฟรีได้ตามเดิม";startChat();return}
+  $("keyHelp").textContent="บันทึกแล้ว กำลังทดสอบ key…";$("saveKey").disabled=true;
+  try{const t=await askAI([{role:"user",content:"Reply with just: OK"}]);$("keyHelp").textContent=`✅ key ใช้ได้ (${prov()==="gemini"?"Google Gemini":"Claude"}) ไปที่แท็บ "คุยกับครู" ได้เลยค่ะ`}
+  catch(e){$("keyHelp").textContent=`❌ ทดสอบไม่ผ่าน: ${e.status===401||e.status===403?"key ไม่ถูกต้อง ตรวจว่าคัดลอกมาครบทั้งหมด และเลือกผู้ให้บริการตรงกับ key":e.status===429?"key ถูกต้อง แต่โควตาฟรีเต็ม รอสักพักแล้วลองใหม่":"เชื่อมต่อไม่ได้"} (${String(e.message||"").slice(0,120)})`}
+  finally{$("saveKey").disabled=false;startChat()}
+};
 
 /* ================= tabs ================= */
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
