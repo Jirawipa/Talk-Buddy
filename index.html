@@ -1,0 +1,1222 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Talk Buddy</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#1E90FF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Talk Buddy">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@500;600;700&display=swap">
+<style>
+/* Bright sky theme for kids: blue header band, cloud-dotted sky, chunky bold type, Buddy the robot mascot.
+   Layout: phone-first app shell — top stats bar, scrolling lesson path, fixed bottom tabs; lessons open full-screen over it */
+:root{
+  --bg:#DDF1FF; --surface:#FFFFFF; --ink:#0B2545; --muted:#46628A; --line:#C3E0F7; --line-strong:#93C6EE;
+  --accent:#1E90FF; --accent-deep:#0A62C8; --accent-ink:#FFFFFF; --soft:#D3ECFF; --cloud:#FFFFFF;
+  --sun:#FFB800; --sun-deep:#D38F00; --heart:#FF4D6D;
+  --good:#16A34A; --good-soft:#D9F7E4; --bad:#E5383B; --bad-soft:#FFE1DF; --locked:#C6D7E7;
+  --display:"Kanit","Noto Sans Thai",system-ui,sans-serif;
+  --body:"IBM Plex Sans Thai","Noto Sans Thai",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0A1A33; --surface:#12284A; --ink:#EAF4FF; --muted:#A3BEDF; --line:#24426E; --line-strong:#2F5490;
+  --accent:#4DB2FF; --accent-deep:#1F7BD6; --accent-ink:#04213F; --soft:#173A66; --cloud:#1A3560;
+  --sun:#FFCE3A; --sun-deep:#C99A12; --heart:#FF6B85;
+  --good:#4ADE80; --good-soft:#123A28; --bad:#FF7B72; --bad-soft:#3E1C1C; --locked:#24395A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A1A33; --surface:#12284A; --ink:#EAF4FF; --muted:#A3BEDF; --line:#24426E; --line-strong:#2F5490;
+  --accent:#4DB2FF; --accent-deep:#1F7BD6; --accent-ink:#04213F; --soft:#173A66; --cloud:#1A3560;
+  --sun:#FFCE3A; --sun-deep:#C99A12; --heart:#FF6B85;
+  --good:#4ADE80; --good-soft:#123A28; --bad:#FF7B72; --bad-soft:#3E1C1C; --locked:#24395A; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:500 17px/1.6 var(--body);-webkit-tap-highlight-color:transparent;overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.app{height:100%;display:flex;flex-direction:column;max-width:560px;margin:0 auto}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* top bar */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--accent)}
+.app{background:var(--bg)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:calc(env(safe-area-inset-top,0px) + 12px) 12px;background:var(--accent);color:var(--accent-ink);border-radius:0 0 22px 22px;box-shadow:0 4px 0 var(--accent-deep)}
+.brand{font:700 23px var(--display);letter-spacing:.3px;display:flex;align-items:center;gap:6px}
+.brand svg{width:34px;height:34px}
+.stats{display:flex;gap:8px;font:700 17px var(--display);font-variant-numeric:tabular-nums}
+.stats .stat{background:color-mix(in srgb,var(--accent-ink) 22%,transparent);border-radius:999px;padding:3px 10px}
+.stat{display:flex;align-items:center;gap:4px}
+.stat.fire{color:var(--sun)} .stat.xp{color:var(--accent)} .stat.heart{color:var(--heart)}
+.top .stat span{color:var(--accent-ink)}
+.lbar .stat span{color:var(--ink)}
+
+main{flex:1;min-height:0;overflow-y:auto;padding-block:18px 24px;
+  background:radial-gradient(70px 26px at 12% 60px,var(--cloud) 97%,transparent 100%),radial-gradient(46px 20px at 20% 48px,var(--cloud) 97%,transparent 100%),
+  radial-gradient(80px 28px at 88% 340px,var(--cloud) 97%,transparent 100%),radial-gradient(50px 22px at 80% 326px,var(--cloud) 97%,transparent 100%),
+  radial-gradient(64px 24px at 10% 720px,var(--cloud) 97%,transparent 100%);background-attachment:local}
+.view[hidden]{display:none}
+
+/* path */
+.unit{margin-bottom:28px}
+.unit-head{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--accent);color:var(--accent-ink);border-radius:16px;padding:12px 16px;margin-bottom:18px}
+.unit-head h2{margin:0;font:700 20px/1.3 var(--display)}
+.unit-head p{margin:0;font-size:14px;font-weight:600;opacity:.92}
+.unit.locked .unit-head{background:var(--locked);color:var(--muted)}
+.nodes{display:flex;flex-direction:column;align-items:center;gap:14px}
+.node{width:82px;height:76px;border-radius:50%;border:0;display:grid;place-items:center;font-size:30px;position:relative;
+  background:var(--accent);box-shadow:0 6px 0 var(--accent-deep);transition:transform .08s}
+.node:active{transform:translateY(4px);box-shadow:0 2px 0 var(--accent-deep)}
+.node.done{background:var(--sun);box-shadow:0 6px 0 var(--sun-deep)}
+.node.locked{background:var(--locked);box-shadow:0 6px 0 var(--line-strong);filter:grayscale(1);cursor:not-allowed}
+.node .crown{position:absolute;right:-8px;bottom:-6px;font:600 12px var(--display);background:var(--surface);color:var(--sun-deep);border:2px solid var(--sun);border-radius:999px;padding:0 6px}
+.node-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.node-label{font:600 15px var(--display);color:var(--ink)}
+.start-tag{font:700 15px var(--display);color:var(--accent);background:var(--surface);border:2px solid var(--line);border-radius:10px;padding:2px 10px}
+
+.banner{background:var(--surface);border:2px solid var(--line);border-radius:20px;box-shadow:0 4px 0 var(--line);padding:12px 14px;margin-bottom:18px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.banner p{margin:0;font-size:15px;color:var(--muted);flex:1;min-width:200px}
+.banner strong{font:700 19px var(--display)}
+.buddy-hi{display:flex;flex:none}
+.buddy-hi .mascot{width:78px;flex:none;animation:bob 2.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-5px)}}
+@keyframes hop{30%{transform:translateY(-12px) rotate(-6deg)}60%{transform:translateY(0)}80%{transform:translateY(-4px)}}
+@keyframes wobble{25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+.goal{height:12px;background:var(--line);border-radius:999px;overflow:hidden;margin-top:6px}
+.goal i{display:block;height:100%;background:var(--sun);border-radius:999px}
+
+/* bottom nav */
+nav{display:flex;border-top:2px solid var(--line);background:var(--surface);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;border:0;background:none;padding:10px 4px;font:600 14px var(--display);color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button b{font-size:22px;line-height:1}
+nav button[aria-current="page"]{color:var(--accent)}
+nav button[aria-current="page"] b{transform:scale(1.15)}
+
+/* buttons */
+.btn{border:0;border-radius:16px;padding:14px 18px;font:700 18px var(--display);letter-spacing:.3px;background:var(--accent);color:var(--accent-ink);box-shadow:0 4px 0 var(--accent-deep);width:100%}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--accent-deep)}
+.btn:disabled{background:var(--locked);color:var(--muted);box-shadow:0 4px 0 var(--line-strong);cursor:not-allowed;transform:none}
+.btn.ghost{background:var(--surface);color:var(--accent);box-shadow:0 4px 0 var(--line-strong);border:2px solid var(--line)}
+.btn.small{width:auto;padding:8px 14px;font-size:14px}
+.btn.good{background:var(--good);box-shadow:0 4px 0 color-mix(in srgb,var(--good) 70%,#000)}
+.btn.bad{background:var(--bad);box-shadow:0 4px 0 color-mix(in srgb,var(--bad) 70%,#000)}
+
+/* lesson overlay */
+.lesson{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:20;
+  padding-top:env(safe-area-inset-top,0px)}
+.lesson[hidden]{display:none}
+.lesson-in{flex:1;min-height:0;display:flex;flex-direction:column;max-width:560px;width:100%;margin:0 auto}
+.lbar{display:flex;align-items:center;gap:12px;padding-block:12px}
+.x{border:0;background:none;font-size:24px;color:var(--muted);padding:4px 6px}
+.prog{flex:1;height:14px;background:var(--line);border-radius:999px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--good);border-radius:999px;transition:width .3s}
+.lbody{flex:1;min-height:0;overflow-y:auto;padding-block:8px 16px;display:flex;flex-direction:column;gap:16px}
+.q{font:700 24px/1.35 var(--display);margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:-8px 0 0;font-size:14px}
+.card{display:flex;align-items:center;gap:14px;background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:14px 16px}
+.card .pic{font-size:52px;line-height:1}
+.card .word{font:700 27px var(--display);color:var(--accent-deep)}
+:root[data-theme="dark"] .card .word{color:var(--accent)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .card .word{color:var(--accent)}}
+.card .th{color:var(--muted);font-size:15px}
+.say{border:0;width:46px;height:46px;flex:none;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-size:20px;box-shadow:0 3px 0 var(--accent-deep)}
+.say.big{width:88px;height:88px;border-radius:22px;font-size:40px;align-self:center;box-shadow:0 5px 0 var(--accent-deep)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{border:2px solid var(--line);background:var(--surface);border-radius:16px;padding:15px 10px;font:600 19px var(--display);box-shadow:0 4px 0 var(--line-strong);min-width:0;overflow-wrap:anywhere}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--soft);box-shadow:0 3px 0 var(--accent)}
+.opt.ok{border-color:var(--good);background:var(--good-soft);opacity:.45;pointer-events:none}
+.opt.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.match{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.match .col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.answer{min-height:58px;border-bottom:2px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;padding:8px 0;align-content:flex-start}
+.bank{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding-top:8px}
+.chip{border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 12px;font:600 18px var(--display);box-shadow:0 3px 0 var(--line-strong)}
+.chip.used{visibility:hidden}
+.mic{border:0;width:100%;padding:18px;border-radius:18px;background:var(--soft);color:var(--accent);font:600 17px var(--display);border:2px solid var(--accent)}
+.mic.on{background:var(--heart);color:#fff;border-color:var(--heart);animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.65}}
+.heard{font-size:15px;color:var(--muted);min-height:1.5em}
+.w-ok{color:var(--good);font-weight:600}.w-miss{color:var(--bad);text-decoration:underline wavy}
+.mic.self{background:var(--good-soft);color:var(--good);border-color:var(--good)}
+.linkbtn{border:0;background:none;color:var(--muted);text-decoration:underline;font-size:14px;align-self:center;padding:6px}
+
+.foot{padding-block:14px calc(14px + env(safe-area-inset-bottom,0px));border-top:2px solid var(--line);background:var(--bg)}
+.foot.good{background:var(--good-soft);border-color:transparent}
+.foot.bad{background:var(--bad-soft);border-color:transparent}
+.foot-in{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.verdict{font:700 21px var(--display)}
+.verdict-row{display:flex;gap:10px;align-items:center}
+.verdict-row .mascot{width:56px;flex:none}
+.foot.good .mascot{animation:hop .7s ease-out}
+.foot.bad .mascot{animation:wobble .5s ease-in-out 2}
+.done-screen .mascot{width:150px;animation:hop 1s ease-out}
+.foot.good .verdict{color:var(--good)} .foot.bad .verdict{color:var(--bad)}
+.verdict small{display:block;font:400 15px var(--body);color:var(--ink)}
+
+.done-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px}
+.done-screen .big{font-size:72px;line-height:1}
+.done-screen h2{font:700 28px var(--display);margin:0}
+.tiles{display:flex;gap:10px}
+.tile{border:2px solid var(--line);border-radius:14px;padding:10px 16px;background:var(--surface);font:600 20px var(--display);font-variant-numeric:tabular-nums}
+.tile small{display:block;font:500 12px var(--body);color:var(--muted)}
+
+/* units v5 */
+.unit-head{position:relative}
+.unit-ic{font-size:34px;line-height:1}
+.unit.complete .unit-head{background:linear-gradient(135deg,var(--accent),var(--good))}
+.node.test{border-radius:22px}
+.node.test:not(.locked):not(.done){background:var(--sun);box-shadow:0 6px 0 var(--sun-deep)}
+.mascot{height:auto}
+.blank{display:inline-block;color:var(--accent);border-bottom:3px solid var(--accent);letter-spacing:-2px}
+.card .word.sentence{font-size:22px;line-height:1.5}
+.dlg{display:flex;flex-direction:column;gap:10px}
+.dl{display:flex;gap:8px;align-items:flex-end;max-width:92%}
+.dl.b{align-self:flex-end}
+.dl-av .mascot{width:40px}
+.dl .bubble{background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:8px 12px;font:600 17px var(--display)}
+.dl.b .bubble{background:var(--soft);border-color:var(--accent)}
+.dl .bubble .th{display:block;font:500 14px var(--body);color:var(--muted)}
+.say.mini{width:30px;height:30px;font-size:14px;border-radius:9px;box-shadow:0 2px 0 var(--accent-deep);vertical-align:middle}
+.opts.one{grid-template-columns:1fr}
+.opts.one .opt{text-align:left;padding-inline:16px}
+.av{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:50%;font-size:26px;line-height:1;flex:none;border:3px solid #fff;box-shadow:0 2px 0 #0002}
+.av.sm{width:34px;height:34px;font-size:19px;border-width:2px}
+.av.lg{width:72px;height:72px;font-size:42px}
+.avatar-btn{border:0;background:none;padding:0;display:grid}
+.avatar-btn .av{width:38px;height:38px;font-size:22px}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.sw{border:3px solid var(--line);background:var(--surface);border-radius:14px;padding:6px 10px;font:600 15px var(--display);display:inline-flex;align-items:center;gap:6px;min-height:44px}
+.sw[aria-pressed="true"]{border-color:var(--accent);background:var(--soft)}
+.sw:disabled{opacity:.5;cursor:not-allowed}
+.sw .dot{width:22px;height:22px;border-radius:50%;display:inline-block;border:2px solid #0002}
+.sw.emoji{font-size:26px;padding:4px 8px}
+.buddy-stage{display:grid;place-items:center;background:var(--soft);border-radius:18px;padding:10px}
+.buddy-stage .mascot{width:120px}
+.save-row{gap:12px}
+.save-note{font:600 15px var(--display);color:var(--good)}
+.save-note.warn{color:var(--bad)}
+#delRow{background:var(--bad-soft);border-radius:14px;padding:10px 12px}
+#delRow p{margin:0;flex-basis:100%;font:600 15px var(--display);color:var(--bad)}
+.mini-h{font:700 15px var(--display)}
+.pchip .av{width:26px;height:26px;font-size:15px;border-width:2px;vertical-align:middle;margin-right:4px}
+
+/* vocab */
+.sec{font:700 20px var(--display);margin:24px 0 10px}
+.vsum{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.packs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.pack{display:flex;flex-direction:column;background:var(--surface);border:2px solid var(--line);border-radius:16px;box-shadow:0 3px 0 var(--line);min-width:0;overflow:hidden}
+.pack-main{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;background:none;border:0;padding:12px 12px 8px;min-width:0;width:100%}
+.pack-main:active{transform:translateY(1px)}
+.pack-speak{border:0;border-top:2px solid var(--line);background:var(--soft);color:var(--accent-deep);font:700 15px var(--display);padding:9px 8px}
+.pack-speak:active{background:var(--line)}
+:root[data-theme="dark"] .pack-speak{color:var(--accent)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pack-speak{color:var(--accent)}}
+.pack-ic{font-size:30px;line-height:1.1}
+.pack-ic.num{font:600 18px var(--display);width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--soft);color:var(--accent)}
+.pic-img{width:60px;height:60px;display:block}
+.wpic .pic-img{width:30px;height:30px;margin:auto}
+.pack-t{font:700 17px/1.3 var(--display)}
+.pack-s{font-size:12px;color:var(--muted)}
+.pack .goal{width:100%;margin:2px 0}
+.wrow{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
+.wpic{font-size:26px;width:34px;text-align:center}
+.wtxt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+.wtxt b{font:500 16px var(--display)}
+.wtxt span{font-size:14px;color:var(--muted)}
+.dots{display:flex;gap:3px}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.dots i.on{background:var(--sun)}
+.answer.spell{justify-content:center;gap:4px}
+.chip.letter{min-width:42px;font:600 20px var(--display);text-transform:lowercase}
+
+/* chat */
+.chatwrap{display:flex;flex-direction:column;height:100%}
+#chatView{height:100%}
+.chat-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+select,input[type=text],input[type=password]{font:inherit;color:var(--ink);background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:8px 10px;min-width:0}
+#chatLog{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-bottom:12px}
+.msg{max-width:88%;display:flex;flex-direction:column;gap:6px;min-width:0}
+.msg.me{align-self:flex-end;align-items:flex-end}
+.bubble{padding:10px 14px;border-radius:16px;background:var(--surface);border:1px solid var(--line);overflow-wrap:anywhere}
+.me .bubble{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.bubble .th{display:block;font-size:14px;color:var(--muted);margin-top:4px}
+.fix{background:color-mix(in srgb,var(--sun) 18%,var(--surface));border-radius:12px;padding:8px 12px;font-size:14px}
+.fix .th{display:block;color:var(--muted)}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.tools button{font-size:13px;background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:3px 10px}
+.composer{display:flex;gap:8px;align-items:flex-end;background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:6px}
+.composer textarea{flex:1;min-width:0;border:0;background:none;color:var(--ink);font:16px/1.5 var(--body);resize:none;padding:8px;max-height:110px}
+.composer textarea:focus{outline:none}
+.round{flex:none;width:46px;height:46px;border-radius:50%;border:0;font:600 14px var(--display)}
+.round.micb{background:var(--soft);color:var(--accent)}
+.round.micb.on{background:var(--heart);color:#fff;animation:pulse 1.2s infinite}
+.round.send{background:var(--accent);color:var(--accent-ink)}
+.note{font-size:13px;color:var(--muted);margin:6px 2px}
+.note.warn{color:var(--bad)}
+
+/* me */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px}
+.panel h3{margin:0;font:600 17px var(--display)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row label{font-size:14px;color:var(--muted);min-width:90px}
+.row > select,.row > input{flex:1}
+.seg{display:inline-flex;background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:3px}
+.seg button{border:0;background:none;color:var(--muted);font:500 15px var(--display);padding:6px 14px;border-radius:9px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.profiles{display:flex;gap:8px;flex-wrap:wrap}
+.pchip{border:2px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 14px;font:500 15px var(--display)}
+.pchip[aria-pressed="true"]{border-color:var(--accent);background:var(--soft)}
+.small{font-size:13px;color:var(--muted);margin:0}
+.danger{color:var(--bad)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top gut">
+    <div class="brand" id="brand">Talk Buddy</div>
+    <div class="stats" aria-label="สถิติ">
+      <div class="stat fire" title="เรียนต่อเนื่อง (วัน)">🔥<span id="sStreak">0</span></div>
+      <div class="stat xp" title="คะแนน XP">⚡<span id="sXp">0</span></div>
+      <div class="stat heart" title="หัวใจไม่จำกัด">♥<span id="sHearts">∞</span></div>
+      <button class="avatar-btn" type="button" id="avatarBtn" aria-label="ไปหน้าโปรไฟล์"></button>
+    </div>
+  </header>
+
+  <main class="gut">
+    <section class="view" id="learnView">
+      <div class="banner" id="goalBanner">
+        <div class="buddy-hi" id="buddyHi"></div>
+        <div style="flex:1;min-width:180px">
+          <strong id="hello">สวัสดี!</strong>
+          <p id="goalText">เป้าหมายวันนี้ 30 XP</p>
+          <div class="goal"><i id="goalBar" style="width:0%"></i></div>
+        </div>
+      </div>
+      <div class="banner" id="installBanner" hidden>
+        <p id="installText">เพิ่ม Talk Buddy ไว้ที่หน้าจอมือถือ จะเปิดได้เหมือนแอป</p>
+        <button class="btn small" id="installBtn" type="button">ติดตั้ง</button>
+      </div>
+      <div id="path"></div>
+    </section>
+
+    <section class="view" id="vocabView" hidden>
+      <div class="banner">
+        <div style="flex:1;min-width:200px"><strong>ทบทวนวันนี้</strong><p id="reviewText"></p></div>
+        <button class="btn small" type="button" id="reviewBtn">ทบทวน</button>
+      </div>
+      <div class="vsum"><strong id="vCount">จำได้แล้ว 0 คำ</strong><div class="goal"><i id="vBar" style="width:0%"></i></div></div>
+      <h3 class="sec">ชุดคำศัพท์</h3>
+      <div class="packs" id="packs"></div>
+      <h3 class="sec">คำศัพท์ที่ใช้บ่อยที่สุด 2,848 คำ</h3>
+      <div class="vsum"><p class="small" style="margin:0 0 6px">เรียงจากคำที่เจอบ่อยที่สุดไปน้อยที่สุด ชุดละ 100 คำ เรียนครบชุดแรกๆ ก็อ่านและฟังภาษาอังกฤษในชีวิตประจำวันเข้าใจได้มากขึ้นแล้ว</p><strong id="nCount"></strong><div class="goal"><i id="nBar" style="width:0%"></i></div></div>
+      <div class="packs" id="ngslPacks" style="margin-top:10px"></div>
+      <p class="small" style="margin-top:8px">รายการคำศัพท์: New General Service List (Browne, Culligan &amp; Phillips) สัญญาอนุญาต CC BY-SA 4.0</p>
+      <h3 class="sec">คลังคำของฉัน</h3>
+      <input type="text" id="wordSearch" placeholder="ค้นหาคำ ไทยหรืออังกฤษ" aria-label="ค้นหาคำ" style="width:100%;margin-bottom:10px">
+      <div id="wordList"></div>
+    </section>
+
+    <section class="view chatwrap" id="chatView" hidden>
+      <div class="chat-top">
+        <select id="chatUnit" aria-label="หัวข้อคุย"></select>
+        <select id="micLang" aria-label="ภาษาที่ไมค์ฟัง"><option value="en-US">ไมค์ฟัง: อังกฤษ</option><option value="th-TH">ไมค์ฟัง: ไทย</option></select>
+      </div>
+      <div id="chatLog" aria-live="polite"></div>
+      <p class="note" id="chatNote">ตอบเป็นภาษาอังกฤษ หรือพิมพ์ไทยว่า "อยากพูดว่า..." ครูจะสอนให้</p>
+      <form class="composer" id="chatForm">
+        <button type="button" class="round micb" id="chatMic" aria-label="กดพูด">🎤</button>
+        <textarea id="chatInput" rows="1" placeholder="Type here… / พิมพ์ไทยก็ได้"></textarea>
+        <button type="submit" class="round send" aria-label="ส่ง">ส่ง</button>
+      </form>
+    </section>
+
+    <section class="view" id="meView" hidden>
+      <div class="panel">
+        <h3>ผู้เรียน</h3>
+        <div class="profiles" id="profileList"></div>
+        <div class="row"><label for="pName">ชื่อ</label><input type="text" id="pName" maxlength="20"></div>
+        <div class="row"><label>หลักสูตร</label>
+          <div class="seg" role="group" aria-label="หลักสูตร"><button type="button" id="tAdult">ผู้ใหญ่</button><button type="button" id="tKid">เด็ก</button></div>
+          <select id="pGrade" aria-label="ระดับชั้น"><option value="1">ป.1</option><option value="2">ป.2</option><option value="3">ป.3</option><option value="4">ป.4</option><option value="5">ป.5</option><option value="6">ป.6</option></select>
+        </div>
+        <div class="row save-row"><button class="btn small" type="button" id="saveProfile">บันทึก</button><span class="save-note" id="saveNote" role="status"></span></div>
+        <div class="row"><button class="btn ghost small" type="button" id="addProfile">+ เพิ่มผู้เรียน</button><button class="btn ghost small danger" type="button" id="delProfile">ลบผู้เรียนนี้</button></div>
+        <div class="row" id="delRow" hidden></div>
+      </div>
+      <div class="panel">
+        <h3>หน้าตาของฉัน</h3>
+        <div class="row"><span id="avPreview"></span><p class="small" style="flex:1">เลือกหน้าตาและสีพื้น จะโชว์ที่มุมขวาบนและในบทสนทนา</p></div>
+        <div class="swatches" id="avList" role="group" aria-label="เลือกหน้าตา"></div>
+        <div class="swatches" id="avBgList" role="group" aria-label="เลือกสีพื้น"></div>
+      </div>
+      <div class="panel">
+        <h3>แต่งตัวบัดดี้</h3>
+        <div class="buddy-stage" id="buddyStage"></div>
+        <p class="small">สะสม XP เพื่อปลดล็อกสีและของแต่งตัวใหม่ๆ</p>
+        <strong class="mini-h">สีตัว</strong>
+        <div class="swatches" id="bColors" role="group" aria-label="สีบัดดี้"></div>
+        <strong class="mini-h">ของแต่งตัว</strong>
+        <div class="swatches" id="bAcc" role="group" aria-label="ของแต่งตัวบัดดี้"></div>
+      </div>
+      <div class="panel">
+        <h3>เสียง</h3>
+        <div class="row"><label for="vStyle">แบบเสียง</label><select id="vStyle"><option value="woman">ผู้หญิง</option><option value="man">ผู้ชาย</option><option value="boy">เด็กผู้ชาย</option><option value="girl">เด็กผู้หญิง</option></select></div>
+        <div class="row"><label for="voiceSel">เสียงในเครื่อง</label><select id="voiceSel"></select></div>
+        <p class="small">เสียงเด็กใช้เสียงในเครื่องแล้วปรับให้แหลมขึ้น แต่ละเครื่องจะได้เสียงต่างกันเล็กน้อย</p>
+        <div class="row"><label for="rateSel">ความเร็ว</label><select id="rateSel"><option value="0.7">ช้ามาก</option><option value="0.85">ช้า</option><option value="1">ปกติ</option></select></div>
+        <div class="row"><button class="btn ghost small" type="button" id="testVoice">🔊 ทดลองเสียง</button></div>
+      </div>
+      <div class="panel" id="keyPanel">
+        <h3>ครู AI (คุยโต้ตอบ)</h3>
+        <p class="small" id="keyHelp">ใส่ Claude API key เพื่อคุยกับครู AI key เก็บอยู่ในเครื่องนี้เท่านั้น บทเรียนใช้ได้ฟรีโดยไม่ต้องมี key</p>
+        <div class="row"><input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" aria-label="Claude API key"><button class="btn small" type="button" id="saveKey">บันทึก</button></div>
+      </div>
+      <div class="panel">
+        <h3>ข้อมูลการเรียน</h3>
+        <p class="small" id="statsText"></p>
+        <div class="row" id="resetRow"><button class="btn ghost small danger" type="button" id="resetBtn">ล้างความคืบหน้าของผู้เรียนนี้</button></div>
+      </div>
+    </section>
+  </main>
+
+  <nav aria-label="เมนูหลัก">
+    <button type="button" data-tab="learnView" aria-current="page"><b>🏠</b>เรียน</button>
+    <button type="button" data-tab="vocabView"><b>📚</b>คำศัพท์</button>
+    <button type="button" data-tab="chatView"><b>💬</b>คุยกับครู</button>
+    <button type="button" data-tab="meView"><b>👤</b>ฉัน</button>
+  </nav>
+</div>
+
+<div class="lesson" id="lesson" hidden>
+  <div class="lesson-in gut">
+    <div class="lbar">
+      <button class="x" type="button" id="quit" aria-label="ออกจากบทเรียน">✕</button>
+      <div class="prog"><i id="progBar" style="width:0%"></i></div>
+      <div class="stat heart" style="font:500 16px var(--display)">♥<span id="lHearts">∞</span></div>
+    </div>
+    <div class="lbody" id="lbody"></div>
+  </div>
+  <div class="foot gut" id="foot"><div class="foot-in" id="footIn"></div></div>
+</div>
+
+<script>
+/* ================= course content ================= */
+const COURSE={
+adult:[
+ {id:"a1",title:"ทักทาย",en:"Greetings",icon:"👋",
+  words:[["hello","สวัสดี","👋"],["good morning","อรุณสวัสดิ์","🌅"],["thank you","ขอบคุณ","🙏"],["sorry","ขอโทษ","😔"],["yes","ใช่","✅"],["no","ไม่","❌"]],
+  sents:[["Hello, how are you?","สวัสดี สบายดีไหม"],["I am fine, thank you.","ฉันสบายดี ขอบคุณ"],["Nice to meet you.","ยินดีที่ได้รู้จัก"],["See you tomorrow.","เจอกันพรุ่งนี้"],["Good morning, everyone.","อรุณสวัสดิ์ทุกคน"]],
+  dlg:[["A","Good morning! How are you?","อรุณสวัสดิ์ สบายดีไหม"],["B","I am fine, thank you. And you?","สบายดี ขอบคุณ แล้วคุณล่ะ"],["A","I'm great. My name is Anna.","ฉันสบายดีมาก ฉันชื่อแอนนา"],["B","Nice to meet you, Anna.","ยินดีที่ได้รู้จัก แอนนา"],["A","Nice to meet you too!","ยินดีที่ได้รู้จักเช่นกัน"]]},
+ {id:"a2",title:"แนะนำตัว",en:"About me",icon:"🙋",
+  words:[["name","ชื่อ","🏷️"],["job","งาน / อาชีพ","💼"],["live","อาศัยอยู่","🏠"],["from","มาจาก","📍"],["married","แต่งงานแล้ว","💍"],["children","ลูกๆ","👧"]],
+  sents:[["My name is Jira.","ฉันชื่อจิรา"],["I am from Thailand.","ฉันมาจากประเทศไทย"],["I live in Bangkok.","ฉันอาศัยอยู่ที่กรุงเทพ"],["I work in IT.","ฉันทำงานด้านไอที"],["I have one child.","ฉันมีลูกหนึ่งคน"]],
+  dlg:[["A","What is your name?","คุณชื่ออะไร"],["B","My name is Jira.","ฉันชื่อจิรา"],["A","Where are you from?","คุณมาจากไหน"],["B","I am from Thailand.","ฉันมาจากประเทศไทย"],["A","What do you do?","คุณทำงานอะไร"],["B","I work in IT.","ฉันทำงานด้านไอที"]]},
+ {id:"a3",title:"ความรู้สึก",en:"Feelings",icon:"🙂",
+  words:[["happy","มีความสุข","😊"],["tired","เหนื่อย","😩"],["sick","ไม่สบาย","🤒"],["hungry","หิว","🍽️"],["busy","ยุ่ง","📋"],["sleepy","ง่วง","😴"]],
+  sents:[["I am tired.","ฉันเหนื่อย"],["I feel a little sick.","ฉันรู้สึกไม่สบายนิดหน่อย"],["I have a cough.","ฉันไอ"],["I am very busy today.","วันนี้ฉันยุ่งมาก"],["Are you okay?","คุณโอเคไหม"]],
+  dlg:[["A","You look tired. Are you okay?","คุณดูเหนื่อยนะ โอเคไหม"],["B","I feel a little sick.","ฉันรู้สึกไม่สบายนิดหน่อย"],["A","Oh no. Do you have a fever?","แย่จัง มีไข้ไหม"],["B","No, but I have a cough.","ไม่มี แต่ฉันไอ"],["A","Drink some warm water and rest.","ดื่มน้ำอุ่นแล้วพักผ่อนนะ"]]},
+ {id:"a4",title:"เดินทางไปทำงาน",en:"Driving to work",icon:"🚗",
+  words:[["car","รถยนต์","🚗"],["traffic","การจราจร","🚦"],["road","ถนน","🛣️"],["map","แผนที่","🗺️"],["office","ออฟฟิศ","🏢"],["kilometer","กิโลเมตร","📏"]],
+  sents:[["I am going to work.","ฉันกำลังไปทำงาน"],["I'm stuck in traffic.","ฉันติดอยู่ในรถติด"],["I hope the traffic is not bad.","หวังว่ารถจะไม่ติดมาก"],["The map says one more kilometer.","แผนที่บอกว่าอีกหนึ่งกิโลเมตร"],["Eight hundred meters to go.","อีกแปดร้อยเมตร"]],
+  dlg:[["A","Where are you now?","ตอนนี้อยู่ไหน"],["B","I'm stuck in traffic.","ฉันติดอยู่ในรถติด"],["A","How far is the office?","อีกไกลไหมถึงออฟฟิศ"],["B","The map says one more kilometer.","แผนที่บอกว่าอีกหนึ่งกิโลเมตร"],["A","Okay, drive safely!","โอเค ขับรถปลอดภัยนะ"]]},
+ {id:"a5",title:"เวลาและนัดหมาย",en:"Time & plans",icon:"⏰",
+  words:[["time","เวลา","⏰"],["o'clock","นาฬิกา (บอกเวลาตรง)","🕗"],["today","วันนี้","📍"],["tomorrow","พรุ่งนี้","➡️"],["free","ว่าง","🆓"],["late","สาย","🐢"]],
+  sents:[["What time is it?","ตอนนี้กี่โมง"],["It is eight o'clock.","ตอนนี้แปดโมง"],["Are you free tomorrow?","พรุ่งนี้ว่างไหม"],["Let's meet at ten.","เจอกันสิบโมงนะ"],["Sorry, I am late.","ขอโทษที่มาสาย"]],
+  dlg:[["A","Are you free tomorrow?","พรุ่งนี้ว่างไหม"],["B","Yes, I am free in the morning.","ว่าง ฉันว่างตอนเช้า"],["A","Great. Let's meet at ten.","ดีเลย เจอกันสิบโมงนะ"],["B","Okay. See you at ten.","โอเค เจอกันสิบโมง"],["A","See you!","แล้วเจอกัน"]]},
+ {id:"a6",title:"ที่ทำงาน",en:"At the office",icon:"💼",
+  words:[["meeting","การประชุม","👥"],["computer","คอมพิวเตอร์","💻"],["email","อีเมล","📧"],["report","รายงาน","📄"],["boss","หัวหน้า","🧑‍💼"],["team","ทีม","🤝"]],
+  sents:[["I have a meeting at ten.","ฉันมีประชุมตอนสิบโมง"],["Please send me the email.","ช่วยส่งอีเมลมาให้ฉันหน่อย"],["The report is ready.","รายงานเสร็จแล้ว"],["Can you help me?","ช่วยฉันหน่อยได้ไหม"],["Let's start the meeting.","เริ่มประชุมกันเลย"]],
+  dlg:[["A","Is the report ready?","รายงานเสร็จหรือยัง"],["B","Yes, the report is ready.","เสร็จแล้ว รายงานพร้อมแล้ว"],["A","Great. Please send me the email.","ดีมาก ส่งอีเมลมาให้ฉันนะ"],["B","Sure, I will send it now.","ได้เลย จะส่งเดี๋ยวนี้"],["A","Thank you. Let's start the meeting.","ขอบคุณ เริ่มประชุมกันเลย"]]},
+ {id:"a7",title:"ร้านกาแฟ",en:"Coffee shop",icon:"☕",
+  words:[["coffee","กาแฟ","☕"],["tea","ชา","🍵"],["water","น้ำ","💧"],["cake","เค้ก","🍰"],["hot","ร้อน","🔥"],["cold","เย็น","🧊"]],
+  sents:[["I would like a coffee, please.","ขอกาแฟหนึ่งแก้วค่ะ"],["Hot or cold?","ร้อนหรือเย็น"],["How much is it?","ราคาเท่าไหร่"],["Can I have some water?","ขอน้ำหน่อยได้ไหม"],["I like coffee.","ฉันชอบกาแฟ"]],
+  dlg:[["A","Hi! What would you like?","สวัสดีค่ะ รับอะไรดีคะ"],["B","I would like a coffee, please.","ขอกาแฟหนึ่งแก้วค่ะ"],["A","Hot or cold?","ร้อนหรือเย็นคะ"],["B","Cold, please. How much is it?","เย็นค่ะ ราคาเท่าไหร่"],["A","Sixty baht, please.","หกสิบบาทค่ะ"]]},
+ {id:"a8",title:"ร้านอาหาร",en:"Restaurant",icon:"🍽️",
+  words:[["menu","เมนู","📋"],["table","โต๊ะ","🍽️"],["spicy","เผ็ด","🌶️"],["delicious","อร่อย","😋"],["bill","บิล / ใบเสร็จ","🧾"],["waiter","พนักงานเสิร์ฟ","🤵"]],
+  sents:[["A table for two, please.","ขอโต๊ะสำหรับสองคน"],["Can I see the menu?","ขอดูเมนูหน่อย"],["Not too spicy, please.","ไม่เผ็ดมากนะ"],["This is delicious.","อันนี้อร่อยมาก"],["Can I have the bill, please?","ขอเช็กบิลด้วย"]],
+  dlg:[["A","Good evening. How many people?","สวัสดีตอนเย็น กี่ท่านคะ"],["B","A table for two, please.","ขอโต๊ะสำหรับสองคน"],["A","Here is the menu.","นี่เมนูค่ะ"],["B","I'd like fried rice. Not too spicy, please.","ขอข้าวผัด ไม่เผ็ดมากนะ"],["A","Sure. Anything to drink?","ได้ค่ะ รับเครื่องดื่มอะไรไหม"],["B","Water, please.","ขอน้ำเปล่า"]]},
+ {id:"a9",title:"ช็อปปิ้ง",en:"Shopping",icon:"🛍️",
+  words:[["price","ราคา","🏷️"],["size","ขนาด","📐"],["cheap","ถูก","👌"],["expensive","แพง","💎"],["try on","ลองสวม","👕"],["discount","ส่วนลด","🔖"]],
+  sents:[["How much is this shirt?","เสื้อตัวนี้ราคาเท่าไหร่"],["Can I try it on?","ขอลองได้ไหม"],["Do you have a bigger size?","มีไซซ์ใหญ่กว่านี้ไหม"],["It is too expensive.","แพงเกินไป"],["Can I pay by card?","จ่ายด้วยบัตรได้ไหม"]],
+  dlg:[["A","Can I help you?","ให้ช่วยอะไรไหมคะ"],["B","How much is this shirt?","เสื้อตัวนี้ราคาเท่าไหร่"],["A","It's five hundred baht.","ห้าร้อยบาทค่ะ"],["B","Can I try it on?","ขอลองได้ไหม"],["A","Of course. The fitting room is there.","ได้เลย ห้องลองอยู่ตรงนั้นค่ะ"],["B","Thank you. Can I pay by card?","ขอบคุณ จ่ายด้วยบัตรได้ไหม"]]},
+ {id:"a10",title:"โทรศัพท์และอีเมล",en:"Phone & email",icon:"📞",
+  words:[["call","โทร","📞"],["message","ข้อความ","💬"],["speak","พูด","🗣️"],["again","อีกครั้ง","🔁"],["attach","แนบ","📎"],["reply","ตอบกลับ","↩️"]],
+  sents:[["May I speak to Tom, please?","ขอสายคุณทอมหน่อยได้ไหม"],["Can you say that again?","พูดอีกครั้งได้ไหม"],["I will call you back.","เดี๋ยวโทรกลับนะ"],["Please see the attached file.","รบกวนดูไฟล์แนบ"],["Thank you for your reply.","ขอบคุณที่ตอบกลับ"]],
+  dlg:[["A","Hello, ABC Company.","สวัสดีค่ะ บริษัท ABC"],["B","Hello. May I speak to Tom, please?","สวัสดีค่ะ ขอสายคุณทอมหน่อยได้ไหม"],["A","Sorry, he is in a meeting.","ขอโทษค่ะ เขาติดประชุม"],["B","Can I leave a message?","ฝากข้อความได้ไหม"],["A","Sure. What is your name?","ได้ค่ะ ชื่ออะไรคะ"],["B","This is Jira. Please ask him to call me back.","จิราค่ะ รบกวนให้เขาโทรกลับด้วย"]]},
+ {id:"a11",title:"สนามบินและโรงแรม",en:"Airport & hotel",icon:"✈️",
+  words:[["passport","หนังสือเดินทาง","🛂"],["ticket","ตั๋ว","🎫"],["flight","เที่ยวบิน","✈️"],["gate","ประตูขึ้นเครื่อง","🚪"],["room","ห้อง","🛏️"],["key","กุญแจ","🔑"]],
+  sents:[["Here is my passport.","นี่หนังสือเดินทางของฉัน"],["Where is gate five?","ประตูห้าอยู่ที่ไหน"],["My flight is at nine.","เที่ยวบินของฉันเก้าโมง"],["I have a reservation.","ฉันจองห้องไว้แล้ว"],["What time is breakfast?","อาหารเช้ากี่โมง"]],
+  dlg:[["A","Good afternoon. Can I help you?","สวัสดีตอนบ่ายค่ะ ให้ช่วยอะไรคะ"],["B","Hi. I have a reservation.","สวัสดีค่ะ ฉันจองห้องไว้แล้ว"],["A","May I see your passport?","ขอดูหนังสือเดินทางหน่อยค่ะ"],["B","Here is my passport.","นี่หนังสือเดินทางค่ะ"],["A","Thank you. Here is your key.","ขอบคุณค่ะ นี่กุญแจห้อง"],["B","What time is breakfast?","อาหารเช้ากี่โมงคะ"]]},
+ {id:"a12",title:"ถามทาง",en:"Directions",icon:"🧭",
+  words:[["left","ซ้าย","⬅️"],["right","ขวา","➡️"],["straight","ตรงไป","⬆️"],["near","ใกล้","📍"],["far","ไกล","🗺️"],["corner","หัวมุม","↩️"]],
+  sents:[["Excuse me, where is the station?","ขอโทษค่ะ สถานีอยู่ที่ไหน"],["Go straight.","ตรงไป"],["Turn left at the corner.","เลี้ยวซ้ายที่หัวมุม"],["Is it far from here?","ไกลจากที่นี่ไหม"],["It is near the bank.","อยู่ใกล้ธนาคาร"]],
+  dlg:[["B","Excuse me, where is the station?","ขอโทษค่ะ สถานีอยู่ที่ไหน"],["A","Go straight and turn left at the corner.","ตรงไปแล้วเลี้ยวซ้ายที่หัวมุม"],["B","Is it far from here?","ไกลจากที่นี่ไหม"],["A","No, it is very near. Five minutes.","ไม่ไกล ใกล้มาก ห้านาที"],["B","Thank you very much.","ขอบคุณมากค่ะ"]]},
+ {id:"a13",title:"หาหมอ",en:"At the doctor",icon:"🩺",
+  words:[["headache","ปวดหัว","🤕"],["fever","ไข้","🌡️"],["medicine","ยา","💊"],["pain","อาการเจ็บ","😣"],["rest","พักผ่อน","🛌"],["better","ดีขึ้น","👍"]],
+  sents:[["I have a headache.","ฉันปวดหัว"],["I have a fever.","ฉันมีไข้"],["Take this medicine after meals.","ทานยานี้หลังอาหาร"],["You need to rest.","คุณต้องพักผ่อน"],["I feel better now.","ตอนนี้รู้สึกดีขึ้นแล้ว"]],
+  dlg:[["A","What's the problem?","เป็นอะไรมาคะ"],["B","I have a headache and a fever.","ฉันปวดหัวและมีไข้"],["A","Since when?","เป็นตั้งแต่เมื่อไหร่"],["B","Since yesterday.","ตั้งแต่เมื่อวาน"],["A","Take this medicine after meals and rest.","ทานยานี้หลังอาหารแล้วพักผ่อนนะ"],["B","Thank you, doctor.","ขอบคุณค่ะคุณหมอ"]]},
+ {id:"a14",title:"วันหยุดและงานอดิเรก",en:"Weekend & hobbies",icon:"🎨",
+  words:[["weekend","สุดสัปดาห์","📅"],["movie","ภาพยนตร์","🎬"],["cook","ทำอาหาร","🍳"],["exercise","ออกกำลังกาย","🏃"],["travel","เที่ยว / เดินทาง","🧳"],["relax","พักผ่อน","😌"]],
+  sents:[["What do you do on weekends?","วันหยุดทำอะไร"],["I like to cook.","ฉันชอบทำอาหาร"],["I go to the gym on Saturday.","วันเสาร์ฉันไปยิม"],["Let's watch a movie.","ไปดูหนังกัน"],["I want to travel to Japan.","ฉันอยากไปเที่ยวญี่ปุ่น"]],
+  dlg:[["A","What do you do on weekends?","วันหยุดทำอะไร"],["B","I like to cook with my family.","ฉันชอบทำอาหารกับครอบครัว"],["A","That sounds nice! What do you cook?","ฟังดูดีจัง ทำอะไรบ้าง"],["B","I cook Thai food.","ทำอาหารไทย"],["A","Let's watch a movie this weekend.","สุดสัปดาห์นี้ไปดูหนังกัน"],["B","Good idea!","ความคิดดี"]]},
+ {id:"a15",title:"ประชุมและนำเสนอ",en:"Meetings",icon:"📊",
+  words:[["agenda","วาระการประชุม","📋"],["update","อัปเดต","🔄"],["question","คำถาม","❓"],["agree","เห็นด้วย","👍"],["deadline","กำหนดส่ง","⏰"],["project","โครงการ","📊"]],
+  sents:[["Let's look at the agenda.","มาดูวาระการประชุมกัน"],["Here is the project update.","นี่คือความคืบหน้าของโครงการ"],["Do you have any questions?","มีคำถามไหม"],["I agree with you.","ฉันเห็นด้วยกับคุณ"],["The deadline is Friday.","กำหนดส่งวันศุกร์"]],
+  dlg:[["A","Can you give us a project update?","ช่วยอัปเดตโครงการหน่อย"],["B","Sure. We finished the first phase.","ได้ค่ะ เราทำเฟสแรกเสร็จแล้ว"],["A","Great work. When is the deadline?","เยี่ยมมาก กำหนดส่งเมื่อไหร่"],["B","The deadline is Friday.","กำหนดส่งวันศุกร์"],["A","Okay. Any questions?","โอเค มีคำถามไหม"],["B","No questions. Thank you.","ไม่มีค่ะ ขอบคุณ"]]}
+],
+kid:[
+ {id:"k0",title:"สวัสดี",en:"Hello!",icon:"👋",
+  words:[["hello","สวัสดี","👋"],["bye","บ๊ายบาย","🙋"],["name","ชื่อ","🏷️"],["friend","เพื่อน","🧒"],["thank you","ขอบคุณ","🙏"],["please","ได้โปรด","🥺"]],
+  sents:[["Hello! I am Ploy.","สวัสดี หนูชื่อพลอย"],["What is your name?","เธอชื่ออะไร"],["You are my friend.","เธอเป็นเพื่อนหนู"],["Thank you, teacher.","ขอบคุณค่ะคุณครู"],["Bye bye!","บ๊ายบาย"]],
+  dlg:[["A","Hello! I am Buddy.","สวัสดี เราชื่อบัดดี้"],["B","Hello, Buddy! I am Ploy.","สวัสดีบัดดี้ หนูชื่อพลอย"],["A","Nice to meet you, Ploy!","ยินดีที่ได้รู้จักนะพลอย"],["B","Nice to meet you too!","ยินดีที่ได้รู้จักเหมือนกัน"],["A","Let's be friends!","มาเป็นเพื่อนกันนะ"],["B","Yes! Let's be friends.","ได้เลย มาเป็นเพื่อนกัน"]]},
+ {id:"k1",title:"สัตว์",en:"Animals",icon:"🐶",
+  words:[["cat","แมว","🐱"],["dog","หมา","🐶"],["bird","นก","🐦"],["fish","ปลา","🐟"],["elephant","ช้าง","🐘"],["rabbit","กระต่าย","🐰"]],
+  sents:[["I like cats.","หนูชอบแมว"],["The dog is big.","หมาตัวใหญ่"],["The bird can fly.","นกบินได้"],["I see a fish.","หนูเห็นปลา"],["The elephant is grey.","ช้างสีเทา"]],
+  dlg:[["A","Do you have a pet?","เธอมีสัตว์เลี้ยงไหม"],["B","Yes, I have a cat.","มี หนูมีแมว"],["A","What color is your cat?","แมวสีอะไร"],["B","My cat is white.","แมวของหนูสีขาว"],["A","I like cats too!","เราก็ชอบแมว"]]},
+ {id:"k2",title:"สี",en:"Colors",icon:"🎨",
+  words:[["red","สีแดง","🟥"],["blue","สีน้ำเงิน","🟦"],["green","สีเขียว","🟩"],["yellow","สีเหลือง","🟨"],["pink","สีชมพู","🩷"],["black","สีดำ","⬛"]],
+  sents:[["This is a red apple.","นี่คือแอปเปิลสีแดง"],["The sky is blue.","ท้องฟ้าสีฟ้า"],["My bag is pink.","กระเป๋าของหนูสีชมพู"],["I like green.","หนูชอบสีเขียว"],["The sun is yellow.","พระอาทิตย์สีเหลือง"]],
+  dlg:[["A","What is your favorite color?","เธอชอบสีอะไรที่สุด"],["B","I like pink.","หนูชอบสีชมพู"],["A","What color is your bag?","กระเป๋าเธอสีอะไร"],["B","My bag is pink too!","กระเป๋าหนูก็สีชมพู"],["A","So cute!","น่ารักจัง"]]},
+ {id:"k3",title:"ตัวเลข",en:"Numbers",icon:"🔢",
+  words:[["one","หนึ่ง","1️⃣"],["two","สอง","2️⃣"],["three","สาม","3️⃣"],["four","สี่","4️⃣"],["five","ห้า","5️⃣"],["ten","สิบ","🔟"]],
+  sents:[["I have two hands.","หนูมีสองมือ"],["I can count to ten.","หนูนับเลขถึงสิบได้"],["I have three pencils.","หนูมีดินสอสามแท่ง"],["I am nine years old.","หนูอายุเก้าขวบ"],["One, two, three, go!","หนึ่ง สอง สาม ไป!"]],
+  dlg:[["A","How old are you?","เธออายุเท่าไหร่"],["B","I am nine years old.","หนูอายุเก้าขวบ"],["A","How many pencils do you have?","เธอมีดินสอกี่แท่ง"],["B","I have three pencils.","หนูมีดินสอสามแท่ง"],["A","Let's count! One, two, three!","มานับกัน หนึ่ง สอง สาม"]]},
+ {id:"k4",title:"อาหาร",en:"Food",icon:"🍎",
+  words:[["rice","ข้าว","🍚"],["egg","ไข่","🥚"],["milk","นม","🥛"],["apple","แอปเปิล","🍎"],["banana","กล้วย","🍌"],["noodles","ก๋วยเตี๋ยว","🍜"]],
+  sents:[["I eat rice.","หนูกินข้าว"],["I drink milk.","หนูดื่มนม"],["I like bananas.","หนูชอบกล้วย"],["I am hungry.","หนูหิว"],["The egg is hot.","ไข่ร้อน"]],
+  dlg:[["A","Are you hungry?","หิวไหม"],["B","Yes, I am hungry.","หิว หนูหิวแล้ว"],["A","Do you want rice or noodles?","อยากกินข้าวหรือก๋วยเตี๋ยว"],["B","I want noodles, please.","อยากกินก๋วยเตี๋ยวค่ะ"],["A","Here you are!","นี่จ้ะ"],["B","Thank you!","ขอบคุณค่ะ"]]},
+ {id:"k5",title:"ครอบครัว",en:"Family",icon:"👨‍👩‍👧",
+  words:[["mother","แม่","👩"],["father","พ่อ","👨"],["sister","พี่สาว/น้องสาว","👧"],["brother","พี่ชาย/น้องชาย","👦"],["grandma","ยาย/ย่า","👵"],["baby","เด็กทารก","👶"]],
+  sents:[["My mom is kind.","แม่ของหนูใจดี"],["I love my family.","หนูรักครอบครัว"],["This is my brother.","นี่คือพี่ชายของหนู"],["My dad is tall.","พ่อของหนูตัวสูง"],["The baby is sleeping.","น้องกำลังนอน"]],
+  dlg:[["A","Who is this?","นี่ใครเอ่ย"],["B","This is my mom.","นี่แม่ของหนู"],["A","She looks kind.","แม่ดูใจดีจัง"],["B","Yes! I love my mom.","ใช่ หนูรักแม่"],["A","How many people are in your family?","ครอบครัวเธอมีกี่คน"],["B","Four people.","สี่คน"]]},
+ {id:"k6",title:"โรงเรียน",en:"School",icon:"🏫",
+  words:[["book","หนังสือ","📕"],["pencil","ดินสอ","✏️"],["teacher","คุณครู","🧑‍🏫"],["bag","กระเป๋า","🎒"],["desk","โต๊ะเรียน","🪑"],["friend","เพื่อน","🧒"]],
+  sents:[["I go to school.","หนูไปโรงเรียน"],["This is my teacher.","นี่คือคุณครูของหนู"],["I have a new pencil.","หนูมีดินสอแท่งใหม่"],["My friend is funny.","เพื่อนของหนูตลก"],["Open your book.","เปิดหนังสือ"]],
+  dlg:[["A","Good morning, class!","สวัสดีตอนเช้าค่ะนักเรียน"],["B","Good morning, teacher!","สวัสดีตอนเช้าค่ะคุณครู"],["A","Please open your book.","เปิดหนังสือด้วยนะคะ"],["B","Sorry, I don't have a pencil.","ขอโทษค่ะ หนูไม่มีดินสอ"],["A","Here is a pencil.","นี่ดินสอจ้ะ"],["B","Thank you, teacher!","ขอบคุณค่ะคุณครู"]]},
+ {id:"k7",title:"ร่างกาย",en:"My body",icon:"🧍",
+  words:[["head","หัว","🙆"],["eye","ตา","👁️"],["ear","หู","👂"],["nose","จมูก","👃"],["mouth","ปาก","👄"],["hand","มือ","✋"]],
+  sents:[["I have two eyes.","หนูมีสองตา"],["Touch your nose.","แตะจมูก"],["Wash your hands.","ล้างมือ"],["My head hurts.","หนูปวดหัว"],["Open your mouth.","อ้าปาก"]],
+  dlg:[["A","Let's play a game! Touch your nose.","มาเล่นเกมกัน แตะจมูก"],["B","Here is my nose!","นี่จมูกหนู"],["A","Good! Now touch your ears.","เก่งมาก ทีนี้แตะหู"],["B","Here are my ears!","นี่หูของหนู"],["A","Great job!","เก่งมาก"]]},
+ {id:"k8",title:"เสื้อผ้า",en:"Clothes",icon:"👕",
+  words:[["shirt","เสื้อ","👕"],["pants","กางเกง","👖"],["dress","ชุดกระโปรง","👗"],["shoes","รองเท้า","👟"],["hat","หมวก","🧢"],["socks","ถุงเท้า","🧦"]],
+  sents:[["I wear a hat.","หนูใส่หมวก"],["My shoes are new.","รองเท้าของหนูใหม่"],["Put on your socks.","ใส่ถุงเท้า"],["I like your dress.","หนูชอบชุดของเธอ"],["My shirt is blue.","เสื้อของหนูสีฟ้า"]],
+  dlg:[["A","It's cold today. Put on your jacket.","วันนี้หนาว ใส่เสื้อกันหนาวนะ"],["B","Okay, Mom.","ได้ค่ะแม่"],["A","Where are your shoes?","รองเท้าอยู่ไหน"],["B","My shoes are here.","รองเท้าอยู่นี่ค่ะ"],["A","Good. Let's go!","ดีมาก ไปกันเลย"]]},
+ {id:"k9",title:"บ้านของฉัน",en:"My home",icon:"🏠",
+  words:[["house","บ้าน","🏠"],["bed","เตียง","🛏️"],["door","ประตู","🚪"],["kitchen","ห้องครัว","🍳"],["chair","เก้าอี้","🪑"],["TV","โทรทัศน์","📺"]],
+  sents:[["This is my house.","นี่คือบ้านของหนู"],["My bed is soft.","เตียงของหนูนุ่ม"],["Close the door, please.","ปิดประตูด้วย"],["Mom is in the kitchen.","แม่อยู่ในครัว"],["I watch TV.","หนูดูทีวี"]],
+  dlg:[["A","Where is Mom?","แม่อยู่ไหน"],["B","Mom is in the kitchen.","แม่อยู่ในครัว"],["A","What is she doing?","แม่ทำอะไรอยู่"],["B","She is cooking dinner.","แม่กำลังทำอาหารเย็น"],["A","Yummy!","น่าอร่อย"]]},
+ {id:"k10",title:"ท่าทางสนุกๆ",en:"Action words",icon:"🏃",
+  words:[["run","วิ่ง","🏃"],["jump","กระโดด","🦘"],["sit","นั่ง","🪑"],["stand","ยืน","🧍"],["walk","เดิน","🚶"],["clap","ปรบมือ","👏"]],
+  sents:[["I can run fast.","หนูวิ่งเร็วได้"],["Jump, jump, jump!","กระโดด กระโดด กระโดด"],["Please sit down.","นั่งลงนะ"],["Stand up, please.","ยืนขึ้นนะ"],["Clap your hands!","ปรบมือ"]],
+  dlg:[["A","Can you jump?","เธอกระโดดได้ไหม"],["B","Yes, I can jump!","ได้ หนูกระโดดได้"],["A","Can you run fast?","วิ่งเร็วได้ไหม"],["B","Yes, I can run fast!","ได้ หนูวิ่งเร็วได้"],["A","Now clap your hands!","ทีนี้ปรบมือ"]]},
+ {id:"k11",title:"ความรู้สึก",en:"Feelings",icon:"😊",
+  words:[["happy","ดีใจ","😊"],["sad","เสียใจ","😢"],["angry","โกรธ","😠"],["scared","กลัว","😨"],["tired","เหนื่อย","😩"],["hungry","หิว","🤤"]],
+  sents:[["I am happy.","หนูดีใจ"],["Why are you sad?","ทำไมเธอเสียใจ"],["I am scared of the dark.","หนูกลัวความมืด"],["I am tired.","หนูเหนื่อย"],["Don't be angry.","อย่าโกรธนะ"]],
+  dlg:[["A","Why are you sad?","ทำไมเธอเสียใจ"],["B","I lost my toy.","หนูทำของเล่นหาย"],["A","Don't worry. Let's look for it.","ไม่ต้องห่วง มาหากัน"],["B","Thank you!","ขอบคุณ"],["A","Look! Here it is!","ดูสิ อยู่นี่เอง"],["B","Yay! I am happy now.","เย้ ตอนนี้หนูดีใจแล้ว"]]},
+ {id:"k12",title:"อากาศและเวลา",en:"Weather & time",icon:"🌤️",
+  words:[["sunny","แดดออก","☀️"],["rainy","ฝนตก","🌧️"],["hot","ร้อน","🥵"],["cold","หนาว","🥶"],["morning","ตอนเช้า","🌅"],["night","กลางคืน","🌙"]],
+  sents:[["It is sunny today.","วันนี้แดดออก"],["It is raining.","ฝนกำลังตก"],["I wake up in the morning.","หนูตื่นนอนตอนเช้า"],["What time is it?","ตอนนี้กี่โมง"],["It is cold at night.","ตอนกลางคืนอากาศหนาว"]],
+  dlg:[["A","How is the weather today?","วันนี้อากาศเป็นยังไง"],["B","It is raining.","ฝนกำลังตก"],["A","Take your umbrella.","เอาร่มไปด้วยนะ"],["B","Okay. Thank you!","ได้ค่ะ ขอบคุณค่ะ"],["A","See you after school!","เจอกันหลังเลิกเรียนนะ"]]},
+ {id:"k13",title:"วันในสัปดาห์",en:"Days of the week",icon:"📅",
+  words:[["Monday","วันจันทร์","🟡"],["Tuesday","วันอังคาร","🩷"],["Wednesday","วันพุธ","🟢"],["Thursday","วันพฤหัสบดี","🟠"],["Friday","วันศุกร์","🔵"],["Saturday","วันเสาร์","🟣"]],
+  sents:[["Today is Monday.","วันนี้วันจันทร์"],["I go to school on Monday.","หนูไปโรงเรียนวันจันทร์"],["I play football on Saturday.","หนูเล่นฟุตบอลวันเสาร์"],["Tomorrow is Friday.","พรุ่งนี้วันศุกร์"],["I love Sunday.","หนูชอบวันอาทิตย์"]],
+  dlg:[["A","What day is it today?","วันนี้วันอะไร"],["B","Today is Friday.","วันนี้วันศุกร์"],["A","What do you do on Saturday?","วันเสาร์ทำอะไร"],["B","I play football on Saturday.","หนูเล่นฟุตบอลวันเสาร์"],["A","That's fun!","สนุกจัง"]]},
+ {id:"k14",title:"อาชีพ",en:"Jobs",icon:"👩‍⚕️",
+  words:[["doctor","หมอ","🧑‍⚕️"],["nurse","พยาบาล","👩‍⚕️"],["police","ตำรวจ","👮"],["farmer","ชาวนา","🧑‍🌾"],["cook","พ่อครัว/แม่ครัว","🧑‍🍳"],["driver","คนขับรถ","🚌"]],
+  sents:[["I want to be a doctor.","หนูอยากเป็นหมอ"],["A farmer grows rice.","ชาวนาปลูกข้าว"],["The cook makes food.","พ่อครัวทำอาหาร"],["He is a police officer.","เขาเป็นตำรวจ"],["The driver is careful.","คนขับรถระมัดระวัง"]],
+  dlg:[["A","What do you want to be?","โตขึ้นอยากเป็นอะไร"],["B","I want to be a doctor.","หนูอยากเป็นหมอ"],["A","Why?","ทำไมล่ะ"],["B","I want to help people.","หนูอยากช่วยเหลือคน"],["A","That's wonderful!","ยอดเยี่ยมเลย"]]},
+ {id:"k15",title:"งานอดิเรก",en:"Hobbies",icon:"⚽",
+  words:[["football","ฟุตบอล","⚽"],["read","อ่านหนังสือ","📖"],["draw","วาดรูป","🖍️"],["sing","ร้องเพลง","🎤"],["swim","ว่ายน้ำ","🏊"],["game","เกม","🎮"]],
+  sents:[["I like to draw.","หนูชอบวาดรูป"],["Let's play football.","ไปเล่นฟุตบอลกัน"],["I can swim.","หนูว่ายน้ำได้"],["She likes to sing.","เธอชอบร้องเพลง"],["I read every day.","หนูอ่านหนังสือทุกวัน"]],
+  dlg:[["A","What do you like to do?","เธอชอบทำอะไร"],["B","I like to draw.","หนูชอบวาดรูป"],["A","What do you draw?","วาดอะไร"],["B","I draw cats and dogs.","หนูวาดแมวกับหมา"],["A","Can I see?","ขอดูหน่อยได้ไหม"],["B","Sure! Here you are.","ได้เลย นี่จ้ะ"]]},
+ {id:"k16",title:"สวนสัตว์และฟาร์ม",en:"Zoo & farm",icon:"🦁",
+  words:[["lion","สิงโต","🦁"],["monkey","ลิง","🐒"],["giraffe","ยีราฟ","🦒"],["cow","วัว","🐄"],["pig","หมู","🐷"],["chicken","ไก่","🐔"]],
+  sents:[["The lion is strong.","สิงโตแข็งแรง"],["The monkey eats bananas.","ลิงกินกล้วย"],["The giraffe is very tall.","ยีราฟตัวสูงมาก"],["A cow says moo.","วัวร้องมอ"],["Chickens lay eggs.","ไก่ออกไข่"]],
+  dlg:[["A","Look! What animal is that?","ดูสิ นั่นตัวอะไร"],["B","It's a giraffe!","ยีราฟ"],["A","It is very tall.","ตัวสูงมาก"],["B","And look, a monkey!","ดูนั่น ลิงด้วย"],["A","The monkey eats bananas.","ลิงกินกล้วย"]]},
+ {id:"k17",title:"วันเกิดและเทศกาล",en:"Parties",icon:"🎂",
+  words:[["birthday","วันเกิด","🎂"],["cake","เค้ก","🍰"],["gift","ของขวัญ","🎁"],["party","งานปาร์ตี้","🎉"],["balloon","ลูกโป่ง","🎈"],["candle","เทียน","🕯️"]],
+  sents:[["Happy birthday!","สุขสันต์วันเกิด"],["This gift is for you.","ของขวัญนี้ให้เธอ"],["Let's eat cake.","มากินเค้กกัน"],["Blow out the candles.","เป่าเทียนเลย"],["I like this party.","หนูชอบปาร์ตี้นี้"]],
+  dlg:[["A","Happy birthday!","สุขสันต์วันเกิด"],["B","Thank you!","ขอบคุณ"],["A","This gift is for you.","ของขวัญนี้ให้เธอ"],["B","Wow! Thank you so much!","ว้าว ขอบคุณมากเลย"],["A","Let's eat cake!","มากินเค้กกัน"]]}
+]};
+
+/* ================= Buddy the robot (Talk Buddy's own mascot) ================= */
+const BUDDY_COLORS=[
+ {id:"blue",n:"ฟ้า",body:"#3AA8FF",line:"#0A62C8",arm:"#1E90FF",xp:0},
+ {id:"pink",n:"ชมพู",body:"#FF8CC0",line:"#C2185B",arm:"#FF5A9E",xp:0},
+ {id:"green",n:"เขียว",body:"#52D68A",line:"#178A45",arm:"#2EB866",xp:0},
+ {id:"purple",n:"ม่วง",body:"#A98BFF",line:"#5B32C8",arm:"#8A5CF6",xp:0},
+ {id:"orange",n:"ส้ม",body:"#FFAE57",line:"#C25E00",arm:"#FF8C1A",xp:100},
+ {id:"yellow",n:"เหลือง",body:"#FFD84D",line:"#B88600",arm:"#F2B800",xp:200},
+ {id:"red",n:"แดง",body:"#FF7B7B",line:"#B3261E",arm:"#F04848",xp:300},
+ {id:"mint",n:"มิ้นต์",body:"#45DDCB",line:"#0E8A80",arm:"#1FBFB0",xp:500}
+];
+const BUDDY_ACC=[
+ {id:"none",n:"ไม่ใส่",xp:0},{id:"glasses",n:"แว่นตา",xp:0},{id:"bow",n:"โบว์",xp:0},
+ {id:"cap",n:"หมวกแก๊ป",xp:50},{id:"party",n:"หมวกปาร์ตี้",xp:100},{id:"headphones",n:"หูฟัง",xp:200},
+ {id:"flower",n:"ดอกไม้",xp:300},{id:"crown",n:"มงกุฎ",xp:500}
+];
+const ACC_SVG={
+ glasses:`<g fill="#ffffff33" stroke="#0B2545" stroke-width="3"><circle cx="43" cy="50" r="9.5"/><circle cx="63" cy="50" r="9.5"/></g><path d="M52.5 50h1" stroke="#0B2545" stroke-width="3"/>`,
+ bow:`<g transform="translate(76 26) rotate(15)"><path d="M0 0L-13-8V8ZM0 0L13-8V8Z" fill="#FF5A9E" stroke="#C2185B" stroke-width="2" stroke-linejoin="round"/><circle r="4" fill="#C2185B"/></g>`,
+ cap:`<path d="M22 36Q24 10 53 10Q82 10 84 36Z" fill="#FF4D4D" stroke="#B3261E" stroke-width="2.5"/><path d="M66 33h30q5 0 2 5H64Z" fill="#B3261E"/><circle cx="53" cy="11" r="3.5" fill="#B3261E"/>`,
+ party:`<path d="M53-6L39 26H67Z" fill="#8A5CF6" stroke="#5B32C8" stroke-width="2" stroke-linejoin="round"/><path d="M47 8l12 4M43 17l19 5" stroke="#FFD84D" stroke-width="3"/><circle cx="53" cy="-7" r="5" fill="#FFD84D"/>`,
+ headphones:`<path d="M15 54Q14 12 53 12Q92 12 91 54" stroke="#0B2545" stroke-width="5" fill="none" stroke-linecap="round"/><rect x="7" y="42" width="14" height="24" rx="6" fill="#FF4D6D" stroke="#0B2545" stroke-width="2.5"/><rect x="85" y="42" width="14" height="24" rx="6" fill="#FF4D6D" stroke="#0B2545" stroke-width="2.5"/>`,
+ flower:`<g transform="translate(27 25)"><g fill="#FF8CC0" stroke="#C2185B" stroke-width="1.5"><circle cx="0" cy="-7" r="5.5"/><circle cx="6.7" cy="-2.2" r="5.5"/><circle cx="4.1" cy="5.7" r="5.5"/><circle cx="-4.1" cy="5.7" r="5.5"/><circle cx="-6.7" cy="-2.2" r="5.5"/></g><circle r="4" fill="#FFD84D"/></g>`,
+ crown:`<path d="M33 25L36 4L45 16L53 0L61 16L70 4L73 25Z" fill="#FFC21A" stroke="#B88600" stroke-width="2.5" stroke-linejoin="round"/><circle cx="53" cy="16" r="3" fill="#FF4D6D"/><circle cx="42" cy="20" r="2.4" fill="#1E90FF"/><circle cx="64" cy="20" r="2.4" fill="#1E90FF"/>`
+};
+function buddyLook(){const b=(typeof P==="function"&&P()&&P().buddy)||{};return {c:BUDDY_COLORS.find(x=>x.id===b.color)||BUDDY_COLORS[0],acc:b.acc||"none"}}
+function mascot(mood,look){
+  const {c,acc}=look||buddyLook();
+  const eyes=mood==="cheer"?`<path d="M37 51q6-8 12 0M57 51q6-8 12 0" stroke="#0B2545" stroke-width="4" fill="none" stroke-linecap="round"/>`
+    :mood==="sad"?`<circle cx="43" cy="51" r="5" fill="#0B2545"/><circle cx="63" cy="51" r="5" fill="#0B2545"/><path d="M37 44l11-5M69 44l-11-5" stroke="#0B2545" stroke-width="3" stroke-linecap="round"/>`
+    :`<circle cx="43" cy="50" r="6" fill="#0B2545"/><circle cx="63" cy="50" r="6" fill="#0B2545"/><circle cx="45" cy="48" r="2" fill="#fff"/><circle cx="65" cy="48" r="2" fill="#fff"/>`;
+  const mouth=mood==="cheer"?`<path d="M42 60q11 16 22 0z" fill="#FF5A7A"/>`:mood==="sad"?`<path d="M46 66q7-4 14 0" stroke="#0B2545" stroke-width="3.5" fill="none" stroke-linecap="round"/>`
+    :`<path d="M44 61q9 9 18 0" stroke="#0B2545" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+  const A=c.arm;
+  const arms=mood==="cheer"?`<path d="M20 64Q8 50 10 36M86 64Q98 50 96 36" stroke="${A}" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="10" cy="34" r="6" fill="#FFB800"/><circle cx="96" cy="34" r="6" fill="#FFB800"/>`
+    :mood==="wave"?`<path d="M20 66Q10 72 12 84" stroke="${A}" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M86 62Q100 52 98 38" stroke="${A}" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="98" cy="36" r="6" fill="#FFB800"/>`
+    :`<path d="M20 66Q10 72 12 84M86 66Q96 72 94 84" stroke="${A}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+  const hat=["cap","party","crown"].includes(acc);
+  const antenna=hat?"":`<path d="M53 24V11" stroke="${c.line}" stroke-width="4" stroke-linecap="round"/><circle cx="53" cy="9" r="7" fill="#FFB800"/>`;
+  return `<svg class="mascot" viewBox="0 -14 106 126" aria-hidden="true"><ellipse cx="53" cy="106" rx="26" ry="5" fill="#0B2545" opacity=".12"/>${arms}
+  <rect x="34" y="84" width="38" height="18" rx="9" fill="${A}"/>${antenna}
+  <rect x="16" y="22" width="74" height="66" rx="30" fill="${c.body}" stroke="${c.line}" stroke-width="3"/><rect x="25" y="32" width="56" height="46" rx="20" fill="#F2FAFF"/>
+  ${eyes}${mouth}<ellipse cx="33" cy="62" rx="5" ry="3" fill="#FF9AB0" opacity=".8"/><ellipse cx="73" cy="62" rx="5" ry="3" fill="#FF9AB0" opacity=".8"/>${ACC_SVG[acc]||""}</svg>`;
+}
+const AVATARS=["🧒","👦","👧","🧑","👩","👨","👵","👴","🐱","🐶","🐼","🦊","🐰","🦁","🐯","🐸","🦄","🐧","🐨","🐵"];
+const AV_BG=["#FFD84D","#7CC8FF","#FF9EC4","#7EE3A6","#C3A8FF","#FFB27A"];
+const avatarHtml=(p,cls)=>`<span class="${cls||"av"}" style="background:${AV_BG[p.avbg||0]}">${p.avatar||(p.track==="kid"?"🧒":"🧑")}</span>`;
+
+/* ================= storage & profiles ================= */
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const yesterday=()=>{const d=new Date();d.setDate(d.getDate()-1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const newProfile=(name,track)=>({id:"p"+Date.now().toString(36),name,track,grade:"3",xp:0,streak:0,lastDay:"",hearts:5,heartTs:Date.now(),crowns:{},prog:{},daily:{day:"",xp:0},lessons:0,avatar:track==="kid"?"🧒":"🧑",avbg:track==="kid"?1:0,buddy:{color:"blue",acc:"none"}});
+const MAX_HEARTS_FULL=5;
+let profiles=LS.get("tb_profiles",null);
+if(!profiles||!profiles.length){profiles=[newProfile("ฉัน","adult")];}
+profiles.forEach(p=>{p.hearts=MAX_HEARTS_FULL;p.prog=p.prog||{};for(const id in (p.crowns||{}))if(p.crowns[id]>0&&p.prog[id]==null)p.prog[id]=5;p.buddy=p.buddy||{color:"blue",acc:"none"};if(p.avbg==null)p.avbg=p.track==="kid"?1:0});
+let activeId=LS.get("tb_active",profiles[0].id);
+const P=()=>profiles.find(p=>p.id===activeId)||profiles[0];
+const save=()=>{LS.set("tb_profiles",profiles);LS.set("tb_active",activeId)};
+const units=()=>COURSE[P().track];
+const MAX_HEARTS=5, REFILL_MS=20*60*1000, DAILY_GOAL=30;
+
+function refillHearts(){
+  const p=P();if(p.hearts>=MAX_HEARTS){p.heartTs=Date.now();return}
+  const n=Math.floor((Date.now()-p.heartTs)/REFILL_MS);
+  if(n>0){p.hearts=Math.min(MAX_HEARTS,p.hearts+n);p.heartTs+=n*REFILL_MS;save()}
+}
+function renderStats(){
+  refillHearts();const p=P();
+  const streakAlive=p.lastDay===today()||p.lastDay===yesterday();
+  $("sStreak").textContent=streakAlive?p.streak:0;$("sXp").textContent=p.xp;$("sHearts").textContent="∞";
+  const dxp=p.daily.day===today()?p.daily.xp:0;
+  $("hello").textContent=`สวัสดี ${p.name}! บัดดี้รออยู่นะ`;
+  $("goalText").textContent=dxp>=DAILY_GOAL?`ถึงเป้าหมายวันนี้แล้ว ${dxp} XP เก่งมาก!`:`เป้าหมายวันนี้ ${dxp}/${DAILY_GOAL} XP`;
+  $("goalBar").style.width=Math.min(100,dxp/DAILY_GOAL*100)+"%";
+}
+
+/* ================= path ================= */
+const STEPS=[{k:"words",t:"คำศัพท์",ic:"📘"},{k:"sents",t:"แต่งประโยค",ic:"🧩"},{k:"speak",t:"ฝึกพูด",ic:"🎤"},{k:"story",t:"บทสนทนา",ic:"💬"},{k:"test",t:"ทดสอบท้ายบท",ic:"🏆"}];
+const uprog=u=>(P().prog||{})[u.id]||0;
+const unitOpen=i=>i===0||uprog(units()[i-1])>=STEPS.length;
+function renderPath(){
+  const list=units();let html="",cur=null;
+  list.forEach((u,i)=>{if(cur==null&&unitOpen(i)&&uprog(u)<STEPS.length)cur=[i,uprog(u)]});
+  list.forEach((u,i)=>{
+    const open=unitOpen(i),pr=uprog(u),done=pr>=STEPS.length;
+    html+=`<div class="unit${open?"":" locked"}${done?" complete":""}"><div class="unit-head"><div><h2>บทที่ ${i+1} · ${esc(u.title)}</h2><p>${esc(u.en)} · ${done?"ผ่านแล้ว 🏆":open?`ทำไปแล้ว ${pr}/${STEPS.length}`:"ผ่านบทก่อนหน้าก่อนนะ"}</p></div><span class="unit-ic">${u.icon}</span></div><div class="nodes">`;
+    STEPS.forEach((st,j)=>{
+      const can=open&&j<=pr,isDone=j<pr,isCur=cur&&cur[0]===i&&cur[1]===j,off=[0,52,0,-52,0][j];
+      html+=`<div class="node-wrap" style="transform:translateX(${off}px)">${isCur?`<span class="start-tag">เริ่มตรงนี้</span>`:""}
+        <button class="node${isDone?" done":""}${can?"":" locked"}${st.k==="test"?" test":""}" type="button" data-unit="${i}" data-step="${j}" aria-label="บทที่ ${i+1} ${esc(st.t)}${can?"":" (ล็อก)"}" ${can?"":"aria-disabled=\"true\""}>${can?st.ic:"🔒"}</button>
+        <span class="node-label">${esc(st.t)}</span></div>`;
+    });
+    html+=`</div></div>`;
+  });
+  $("path").innerHTML=html;
+}
+$("path").addEventListener("click",e=>{const b=e.target.closest("[data-unit]");if(!b||b.getAttribute("aria-disabled"))return;startLesson(+b.dataset.unit,+b.dataset.step)});
+
+/* ================= speech ================= */
+let voices=[];
+const FEM=/female|samantha|zira|aria|jenny|google us english|karen|moira|tessa|victoria|susan|serena|ava|allison|libby|sonia|emma|michelle|natasha|hazel|catherine/i;
+const MALE=/(^|\W)male|david|mark|guy|daniel|alex|fred|tom|ryan|christopher|eric|aaron|george|james|ravi|andrew|brian|roger|steffan|thomas/i;
+const VSTYLE={woman:{n:"ผู้หญิง",g:"f",pitch:1.05},man:{n:"ผู้ชาย",g:"m",pitch:0.95},boy:{n:"เด็กผู้ชาย",g:"m",pitch:1.65,rate:1.05},girl:{n:"เด็กผู้หญิง",g:"f",pitch:1.55,rate:1.05}};
+function loadVoices(){
+  if(!("speechSynthesis" in window))return;
+  voices=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));
+  const saved=LS.get("tb_voice","");
+  $("voiceSel").innerHTML=`<option value="auto">อัตโนมัติ (ตามแบบเสียง)</option>`+voices.map((v,i)=>`<option value="${i}">${esc(v.name.replace(/Microsoft |Google /,"").slice(0,28))}</option>`).join("");
+  const idx=voices.findIndex(v=>v.name===saved);$("voiceSel").value=idx>=0?idx:"auto";
+}
+if("speechSynthesis" in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
+$("voiceSel").onchange=()=>{const v=voices[$("voiceSel").value];LS.set("tb_voice",v?v.name:"")};
+$("vStyle").value=LS.get("tb_vstyle","woman");$("vStyle").onchange=()=>{LS.set("tb_vstyle",$("vStyle").value);say(VSTYLE[$("vStyle").value].g==="m"?"Hi! I am your English buddy.":"Hello! Let's learn English together.")};
+$("rateSel").value=LS.get("tb_rate","0.85");$("rateSel").onchange=()=>LS.set("tb_rate",$("rateSel").value);
+function pickVoice(g){
+  const manual=voices[$("voiceSel").value];if(manual)return manual;
+  const re=g==="m"?MALE:FEM,pref=voices.filter(v=>re.test(v.name)&&!(g==="m"&&FEM.test(v.name)));
+  return pref.find(v=>/en[-_]US/i.test(v.lang))||pref[0]||voices.find(v=>/en[-_]US/i.test(v.lang))||voices[0];
+}
+function say(text,rate,styleId){
+  if(!("speechSynthesis" in window)||!text)return;
+  const st=VSTYLE[styleId||$("vStyle").value]||VSTYLE.woman;
+  speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const v=pickVoice(st.g);
+  if(v){u.voice=v;u.lang=v.lang}else u.lang="en-US";
+  u.pitch=st.pitch;u.rate=(rate||+$("rateSel").value)*(st.rate||1);speechSynthesis.speak(u);
+}
+$("testVoice").onclick=()=>say("Hello! I am your English buddy. Let's learn together!");
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function listen(lang,onText,onEnd,onErr){
+  const rec=new SR();rec.lang=lang;rec.interimResults=true;rec.maxAlternatives=1;
+  rec.onresult=e=>{const t=[...e.results].map(r=>r[0].transcript).join(" ");onText(t,e.results[e.results.length-1].isFinal)};
+  rec.onerror=e=>onErr&&onErr(e.error);rec.onend=()=>onEnd&&onEnd();
+  try{rec.start()}catch{onEnd&&onEnd()}return rec;
+}
+const norm=t=>t.toLowerCase().replace(/’/g,"'").replace(/\bi'm\b/g,"i am").replace(/\bisn't\b/g,"is not").replace(/\blet's\b/g,"let us").replace(/[^a-z0-9' ]/g," ").split(/\s+/).filter(Boolean);
+function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let prev=[...Array(n+1).keys()];for(let i=1;i<=m;i++){const cur=[i];for(let j=1;j<=n;j++)cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev=cur}return prev[n]}
+const similar=(heard,target)=>heard===target||(target.length>=4&&lev(heard,target)<=1)||(target.length>=7&&lev(heard,target)<=2);
+const heardHas=(tokens,target)=>tokens.some(t=>similar(t,target));
+const micMsg=err=>err==="not-allowed"||err==="service-not-allowed"?"ยังไม่ได้อนุญาตไมค์ เปิดสิทธิ์ Microphone ในการตั้งค่าเบราว์เซอร์นะคะ":err==="no-speech"?"ไม่ได้ยินเสียง ลองกดแล้วพูดใหม่นะคะ":"ไมค์มีปัญหา ลองใหม่อีกครั้งนะคะ";
+
+/* ================= lesson engine ================= */
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+let L=null;
+function makeFill(sent,u){
+  const toks=sent[0].split(/\s+/),uw=new Set(u.words.map(w=>w[0].toLowerCase()));
+  const clean=t=>t.replace(/[^A-Za-z']/g,"");
+  let idx=toks.findIndex(t=>uw.has(clean(t).toLowerCase()));
+  if(idx<0){idx=0;toks.forEach((t,k)=>{if(clean(t).length>clean(toks[idx]).length)idx=k})}
+  return {t:"fill",s:sent,idx,target:clean(toks[idx]).toLowerCase()};
+}
+function bLines(){return units().flatMap(x=>(x.dlg||[]).filter(l=>l[0]==="B").map(l=>l[1]))}
+function buildItems(u,step){
+  const w=shuffle(u.words),s=shuffle(u.sents),sp=true,d=u.dlg||[];
+  const bIdx=d.map((l,k)=>l[0]==="B"?k:-1).filter(k=>k>=0);
+  const spell=u.words.find(x=>spellable(x[0]));
+  const key=STEPS[step].k;
+  if(key==="words")return [{t:"meaning",w:w[0]},{t:"listen",w:w[1]},{t:"reverse",w:w[2]},{t:"meaning",w:w[3]},{t:"match",ws:shuffle(u.words).slice(0,4)},
+    {t:"listen",w:w[4]},sp?{t:"sayword",w:w[5]}:{t:"reverse",w:w[5]},spell?{t:"spell",w:spell}:{t:"meaning",w:w[0]}];
+  if(key==="sents")return [{t:"meaning",w:w[0]},{t:"build",s:s[0]},makeFill(s[1],u),{t:"listenbuild",s:s[2]},{t:"build",s:s[3]},makeFill(s[4],u),{t:"listen",w:w[1]}];
+  if(key==="speak")return sp?[{t:"listen",w:w[0]},{t:"sayword",w:w[1]},{t:"speak",s:s[0]},{t:"sayword",w:w[2]},{t:"speak",s:s[1]},{t:"listenbuild",s:s[2]},{t:"speak",s:s[3]},{t:"speak",s:s[4]}]
+    :[{t:"listen",w:w[0]},{t:"listenbuild",s:s[0]},{t:"listen",w:w[1]},{t:"listenbuild",s:s[1]},{t:"listenbuild",s:s[2]},{t:"build",s:s[3]}];
+  if(key==="story"){const it=bIdx.map(k=>({t:"dialog",d,i:k}));const bl=d[bIdx[bIdx.length-1]],al=d.find(l=>l[0]==="A");
+    if(sp&&bl)it.push({t:"speak",s:[bl[1],bl[2]]});if(al)it.push({t:"listenbuild",s:[al[1],al[2]]});return it}
+  return [{t:"meaning",w:w[0]},{t:"listen",w:w[1]},makeFill(s[0],u),{t:"build",s:s[1]},{t:"reverse",w:w[2]},{t:"listenbuild",s:s[2]},
+    bIdx.length?{t:"dialog",d,i:bIdx[Math.floor(Math.random()*bIdx.length)]}:{t:"build",s:s[4]},sp?{t:"sayword",w:w[3]}:{t:"match",ws:shuffle(u.words).slice(0,4)},
+    sp?{t:"speak",s:s[3]}:{t:"build",s:s[3]},spell?{t:"spell",w:spell}:{t:"meaning",w:w[4]}];
+}
+function startLesson(i,step){
+  refillHearts();const p=P();
+  if(p.hearts<=0){showNoHearts();return}
+  const u=units()[i];step=step||0;const items=buildItems(u,step);
+  L={kind:"unit",u,ui:i,step,items,idx:0,total:items.length,mistakes:0,retried:new Set(),xpEarned:0,answer:null,checked:false};
+  $("lesson").hidden=false;renderItem();
+}
+function closeLesson(){$("lesson").hidden=true;L=null;window.speechSynthesis&&speechSynthesis.cancel();renderStats();renderPath();renderVocab()}
+$("quit").onclick=()=>{
+  if(!L||L.idx===0){closeLesson();return}
+  if($("leave"))return;
+  const prev=[$("foot").className,$("footIn").innerHTML];
+  setFoot(`<div class="verdict">ออกจากบทเรียนตอนนี้?<small>ความคืบหน้าในบทนี้จะหายไป</small></div><div class="row"><button class="btn ghost" type="button" id="stay" style="flex:1">เรียนต่อ</button><button class="btn bad" type="button" id="leave" style="flex:1">ออก</button></div>`,"");
+  $("stay").onclick=()=>{$("foot").className=prev[0];$("footIn").innerHTML=prev[1]};$("leave").onclick=closeLesson;
+};
+function distractors(correct,field,n){
+  const near=(L&&L.pool?L.pool:units().flatMap(u=>u.words)).map(w=>w[field]);
+  const far=[...WORDMAP.values()].map(w=>w[field]);
+  const a=shuffle([...new Set(near)].filter(x=>x!==correct)).slice(0,n);
+  return a.length>=n?a:[...a,...shuffle([...new Set(far)].filter(x=>x!==correct&&!a.includes(x))).slice(0,n-a.length)];
+}
+function setProg(){$("progBar").style.width=(Math.min(L.idx,L.total)/L.total*100)+"%";$("lHearts").textContent="∞"}
+function setFoot(html,cls){$("foot").className="foot gut"+(cls?" "+cls:"");$("footIn").innerHTML=html}
+function renderFootCheck(){
+  setFoot(`<button class="btn" type="button" id="checkBtn" ${L.answer==null?"disabled":""}>ตรวจคำตอบ</button>`,"");
+}
+function enableCheck(v){L.answer=v;const b=$("checkBtn");if(b)b.disabled=v==null||v===""}
+
+function renderItem(){
+  setProg();L.answer=null;L.checked=false;
+  if(L.idx>=L.items.length){finishLesson();return}
+  const it=L.items[L.idx],B=$("lbody");
+  if(it.t==="meaning"){
+    const opts=shuffle([it.w[1],...distractors(it.w[1],1,3)]);
+    B.innerHTML=`<h2 class="q">คำนี้แปลว่าอะไร?</h2>
+      <div class="card">${picHtml(it.w)}<div style="flex:1;min-width:0"><div class="word">${esc(it.w[0])}</div></div><button class="say" type="button" data-say="${esc(it.w[0])}" aria-label="ฟังเสียง">🔊</button></div>
+      <div class="opts">${opts.map(o=>`<button class="opt" type="button" aria-pressed="false" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div>`;
+    say(it.w[0]);
+  }else if(it.t==="listen"){
+    const opts=shuffle([it.w[0],...distractors(it.w[0],0,3)]);
+    B.innerHTML=`<h2 class="q">ฟังแล้วเลือกคำที่ได้ยิน</h2>
+      <button class="say big" type="button" data-say="${esc(it.w[0])}" aria-label="ฟังอีกครั้ง">🔊</button>
+      <button class="linkbtn" type="button" data-slow="${esc(it.w[0])}">ฟังช้าๆ</button>
+      <div class="opts">${opts.map(o=>`<button class="opt" type="button" aria-pressed="false" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div>`;
+    setTimeout(()=>say(it.w[0]),250);
+  }else if(it.t==="reverse"){
+    const opts=shuffle([it.w[0],...distractors(it.w[0],0,3)]);
+    B.innerHTML=`<h2 class="q">ภาษาอังกฤษคือคำไหน?</h2>
+      <div class="card">${picHtml(it.w)}<div class="word" style="font-size:22px">${esc(it.w[1])}</div></div>
+      <div class="opts">${opts.map(o=>`<button class="opt" type="button" aria-pressed="false" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div>`;
+  }else if(it.t==="spell"){
+    const letters=it.w[0].split(""),abc="abcdefghijklmnopqrstuvwxyz".split("").filter(c=>!letters.includes(c));
+    const bank=shuffle([...letters,...shuffle(abc).slice(0,2)]);L.built=[];L.bank=bank;
+    B.innerHTML=`<h2 class="q">สะกดคำนี้เป็นภาษาอังกฤษ</h2>
+      <div class="card">${picHtml(it.w)}<div style="flex:1;min-width:0"><div class="word" style="font-size:22px">${esc(it.w[1])}</div><div class="th">${letters.length} ตัวอักษร</div></div><button class="say" type="button" data-say="${esc(it.w[0])}" aria-label="ฟังเสียง">🔊</button></div>
+      <div class="answer spell" id="answer" aria-label="คำตอบ"></div><div class="bank" id="bank">${bank.map((c,i)=>`<button class="chip letter" type="button" data-b="${i}">${c}</button>`).join("")}</div>`;
+  }else if(it.t==="fill"){
+    const toks=it.s[0].split(/\s+/);
+    const shown=toks.map((t,k)=>k===it.idx?`<span class="blank">${"＿".repeat(Math.max(3,Math.min(6,it.target.length)))}</span>${esc(t.replace(/^[A-Za-z']+/,""))}`:esc(t)).join(" ");
+    const pool=[...new Set([...units().flatMap(x=>x.words.map(w=>w[0])),...units().flatMap(x=>x.sents.flatMap(q=>q[0].split(/\s+/)))].map(x=>x.replace(/[^A-Za-z']/g,"").toLowerCase()).filter(x=>x&&!x.includes(" ")&&x!==it.target))];
+    const opts=shuffle([it.target,...shuffle(pool).slice(0,3)]);
+    B.innerHTML=`<h2 class="q">เติมคำที่หายไป</h2><div class="card"><div style="min-width:0"><div class="word sentence">${shown}</div><div class="th">${esc(it.s[1])}</div></div></div>
+      <div class="opts">${opts.map(o=>`<button class="opt" type="button" aria-pressed="false" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div>`;
+  }else if(it.t==="dialog"){
+    const prev=it.d.slice(0,it.i),me=P();
+    const others=shuffle(bLines().filter(x=>x!==it.d[it.i][1])).slice(0,2);
+    const opts=shuffle([it.d[it.i][1],...others]);
+    B.innerHTML=`<h2 class="q">${prev.length?"ตอบกลับว่าอะไรดี?":"เริ่มบทสนทนาด้วยประโยคไหน?"}</h2><div class="dlg">${prev.map(l=>l[0]==="A"
+      ?`<div class="dl a"><span class="dl-av">${mascot("happy")}</span><div class="bubble"><button class="say mini" type="button" data-say="${esc(l[1])}" aria-label="ฟัง">🔊</button> ${esc(l[1])}<span class="th">${esc(l[2])}</span></div></div>`
+      :`<div class="dl b"><div class="bubble">${esc(l[1])}<span class="th">${esc(l[2])}</span></div>${avatarHtml(me,"av sm")}</div>`).join("")}</div>
+      <div class="opts one">${opts.map(o=>`<button class="opt" type="button" aria-pressed="false" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div>`;
+    const last=prev[prev.length-1];if(last&&last[0]==="A")setTimeout(()=>say(last[1]),250);
+  }else if(it.t==="sayword"){
+    B.innerHTML=`<h2 class="q">พูดคำนี้</h2>
+      <div class="card">${picHtml(it.w)}<div style="flex:1;min-width:0"><div class="word">${esc(it.w[0])}</div><div class="th">${esc(it.w[1])}</div></div><button class="say" type="button" data-say="${esc(it.w[0])}" aria-label="ฟังตัวอย่าง">🔊</button></div>
+      <button class="linkbtn" type="button" data-slow="${esc(it.w[0])}">ฟังช้าๆ</button>
+      <button class="mic" type="button" id="micBtn">🎤 แตะแล้วพูด</button>
+      <div class="heard" id="heard"></div>
+      <button class="mic self" type="button" id="selfBtn" hidden>✅ ฉันพูดออกเสียงแล้ว</button>
+      <button class="linkbtn" type="button" id="skipSpeak">พูดตอนนี้ไม่ได้ ข้ามข้อนี้</button>`;
+    say(it.w[0]);bindMic(it.w[0]+" — "+it.w[1]);
+  }else if(it.t==="match"){
+    const en=shuffle(it.ws),th=shuffle(it.ws);L.match={sel:null,left:it.ws.length,err:0};
+    B.innerHTML=`<h2 class="q">จับคู่คำศัพท์</h2><p class="sub">แตะคำภาษาอังกฤษ แล้วแตะคำแปลที่ตรงกัน</p>
+      <div class="match"><div class="col">${en.map(w=>`<button class="opt" type="button" aria-pressed="false" data-m="${esc(w[0])}" data-side="en">${esc(w[0])}</button>`).join("")}</div>
+      <div class="col">${th.map(w=>`<button class="opt" type="button" aria-pressed="false" data-m="${esc(w[0])}" data-side="th">${esc(w[1])}</button>`).join("")}</div></div>`;
+    setFoot(`<button class="btn" type="button" disabled>จับคู่ให้ครบก่อน</button>`,"");return;
+  }else if(it.t==="build"||it.t==="listenbuild"){
+    const words=it.s[0].split(/\s+/),extra=distractors("",0,8).filter(x=>!x.includes(" ")&&!words.map(w=>norm(w)[0]).includes(x)).slice(0,2);
+    const bank=shuffle([...words,...extra]);L.built=[];
+    B.innerHTML=it.t==="build"
+      ?`<h2 class="q">แปลเป็นภาษาอังกฤษ</h2><div class="card"><span class="pic">🗨️</span><div class="word" style="font-size:20px">${esc(it.s[1])}</div></div>`
+      :`<h2 class="q">ฟังแล้วเรียงประโยคที่ได้ยิน</h2><div class="card"><button class="say" type="button" data-say="${esc(it.s[0])}" aria-label="ฟังประโยค">🔊</button><button class="linkbtn" type="button" data-slow="${esc(it.s[0])}">ฟังช้าๆ</button><span class="th" style="margin-left:auto">${esc(it.s[1])}</span></div>`;
+    B.innerHTML+=`<div class="answer" id="answer" aria-label="คำตอบ"></div><div class="bank" id="bank">${bank.map((w,i)=>`<button class="chip" type="button" data-b="${i}">${esc(w)}</button>`).join("")}</div>`;
+    L.bank=bank;if(it.t==="listenbuild")setTimeout(()=>say(it.s[0]),250);
+  }else if(it.t==="speak"){
+    B.innerHTML=`<h2 class="q">พูดประโยคนี้</h2>
+      <div class="card"><button class="say" type="button" data-say="${esc(it.s[0])}" aria-label="ฟังตัวอย่าง">🔊</button><div style="min-width:0"><div class="word" style="font-size:21px">${esc(it.s[0])}</div><div class="th">${esc(it.s[1])}</div></div></div>
+      <button class="mic" type="button" id="micBtn">🎤 แตะแล้วพูด</button>
+      <div class="heard" id="heard"></div>
+      <button class="mic self" type="button" id="selfBtn" hidden>✅ ฉันพูดออกเสียงแล้ว</button>
+      <button class="linkbtn" type="button" id="skipSpeak">พูดตอนนี้ไม่ได้ ข้ามข้อนี้</button>`;
+    say(it.s[0]);bindMic(it.s[0]+" — "+it.s[1]);
+  }
+  renderFootCheck();
+}
+
+$("lbody").addEventListener("click",e=>{
+  if(!L||L.checked)return;
+  const sayB=e.target.closest("[data-say]");if(sayB){say(sayB.dataset.say);return}
+  const slow=e.target.closest("[data-slow]");if(slow){say(slow.dataset.slow,0.6);return}
+  const it=L.items[L.idx];
+  const opt=e.target.closest(".opt[data-v]");
+  if(opt){$("lbody").querySelectorAll(".opt[data-v]").forEach(o=>o.setAttribute("aria-pressed",o===opt));enableCheck(opt.dataset.v);if(it.t==="listen"||it.t==="reverse")say(opt.dataset.v);return}
+  const m=e.target.closest(".opt[data-m]");
+  if(m){matchTap(m);return}
+  const b=e.target.closest("[data-b]");
+  if(b&&!b.classList.contains("used")){b.classList.add("used");L.built.push(+b.dataset.b);renderBuilt();if(it.t!=="spell")say(L.bank[+b.dataset.b]);return}
+  const a=e.target.closest("[data-a]");
+  if(a){const bi=+a.dataset.a;L.built=L.built.filter(x=>x!==bi);$("lbody").querySelector(`[data-b="${bi}"]`).classList.remove("used");renderBuilt();return}
+});
+function selfMode(msg){
+  $("micBtn").hidden=true;$("selfBtn").hidden=false;
+  $("heard").textContent=msg||"กด 🔊 ฟังเสียง แล้วพูดตามออกเสียงดังๆ 2–3 รอบ เสร็จแล้วกดปุ่มด้านล่าง";
+}
+function bindMic(skipText){
+  $("selfBtn").onclick=()=>{L.checked=true;showResult(true,"เก่งมาก! ฝึกพูดแล้ว",skipText+" · เปิดแอปใน Chrome หรือ Edge จะให้ไมค์ช่วยตรวจการออกเสียงได้")};
+  if(!SR){selfMode();return}
+  $("micBtn").onclick=()=>{
+    if(L.rec){L.rec.stop();return}
+    window.speechSynthesis&&speechSynthesis.cancel();$("micBtn").classList.add("on");$("micBtn").textContent="กำลังฟัง… แตะเพื่อหยุด";
+    L.rec=listen("en-US",(t,fin)=>{$("heard").textContent="ได้ยินว่า: "+t;enableCheck(t);if(fin)L.rec&&L.rec.stop()},
+      ()=>{L&&(L.rec=null);const m=$("micBtn");if(m){m.classList.remove("on");m.textContent="🎤 แตะแล้วพูดอีกครั้ง"}},
+      err=>{const h=$("heard");if(!h)return;if(err==="not-allowed"||err==="service-not-allowed")selfMode("ไมค์ใช้ไม่ได้ในหน้านี้ ฟังเสียงแล้วพูดตามออกเสียงดังๆ แทนนะ แล้วกดปุ่มด้านล่าง");else h.textContent=micMsg(err)});
+  };
+  $("skipSpeak").onclick=()=>{L.checked=true;showResult(null,"ไว้ฝึกพูดข้อนี้ทีหลังนะ",skipText)};
+}
+function renderBuilt(){
+  $("answer").innerHTML=L.built.map(i=>`<button class="chip" type="button" data-a="${i}">${esc(L.bank[i])}</button>`).join("");
+  const sep=L.items[L.idx].t==="spell"?"":" ";
+  enableCheck(L.built.length?L.built.map(i=>L.bank[i]).join(sep):null);
+}
+function matchTap(btn){
+  const M=L.match;
+  if(btn.classList.contains("ok"))return;
+  if(!M.sel||M.sel.dataset.side===btn.dataset.side){
+    $("lbody").querySelectorAll(`.opt[data-side="${btn.dataset.side}"]`).forEach(o=>o.setAttribute("aria-pressed",o===btn));
+    M.sel=btn;if(btn.dataset.side==="en")say(btn.dataset.m);return;
+  }
+  if(M.sel.dataset.m===btn.dataset.m){
+    [M.sel,btn].forEach(o=>{o.classList.add("ok");o.setAttribute("aria-pressed","false")});M.sel=null;M.left--;
+    gradeWord(btn.dataset.m,true);
+    if(M.left===0){L.checked=true;showResult(true,"จับคู่ครบแล้ว เก่งมาก!","")}
+  }else{
+    M.err++;[M.sel,btn].forEach(o=>{o.classList.remove("shake");void o.offsetWidth;o.classList.add("shake");o.setAttribute("aria-pressed","false")});M.sel=null;
+  }
+}
+function check(){
+  if(L.answer==null||L.checked)return;L.checked=true;
+  const it=L.items[L.idx];let ok=false,msg="",extra="";
+  if(it.t==="meaning"){ok=L.answer===it.w[1];extra=`${it.w[0]} = ${it.w[1]}`}
+  else if(it.t==="listen"){ok=L.answer===it.w[0];extra=`คำที่ได้ยินคือ ${it.w[0]} (${it.w[1]})`}
+  else if(it.t==="reverse"){ok=L.answer===it.w[0];extra=`${it.w[1]} = ${it.w[0]}`}
+  else if(it.t==="spell"){ok=L.answer===it.w[0];extra=`สะกดว่า ${it.w[0].toUpperCase().split("").join(" - ")} (${it.w[1]})`}
+  else if(it.t==="build"||it.t==="listenbuild"){ok=norm(L.answer).join(" ")===norm(it.s[0]).join(" ");extra=`${it.s[0]}<br><span style="color:var(--muted)">${esc(it.s[1])}</span>`}
+  else if(it.t==="fill"){ok=L.answer.toLowerCase()===it.target;extra=`${esc(it.s[0])}<br><span style="color:var(--muted)">${esc(it.s[1])}</span>`}
+  else if(it.t==="dialog"){const l=it.d[it.i];ok=L.answer===l[1];extra=`${esc(l[1])}<br><span style="color:var(--muted)">${esc(l[2])}</span>`}
+  else if(it.t==="sayword"){
+    const said=norm(L.answer),tg=norm(it.w[0]);ok=tg.every(x=>heardHas(said,x));
+    extra=`<span class="${ok?"w-ok":"w-miss"}">${esc(it.w[0])}</span> (${esc(it.w[1])})${ok?"":"<br>กด 🔊 ฟังเสียงแล้วลองพูดตามช้าๆ นะ"}`;
+  }
+  else if(it.t==="speak"){
+    const said=norm(L.answer),words=it.s[0].split(/\s+/);let hit=0;
+    const marked=words.map(w=>{const n=norm(w);const h=n.every(x=>heardHas(said,x));if(h)hit++;return `<span class="${h?"w-ok":"w-miss"}">${esc(w)}</span>`}).join(" ");
+    const pct=Math.round(hit/words.length*100);ok=pct>=70;
+    extra=`${marked} · ${pct}%${ok?"":"<br>คำที่ขีดเส้นแดงยังไม่ชัด กด 🔊 ฟังแล้วลองใหม่ได้ตอนทวน"}`;
+  }
+  if(it.w)gradeWord(it.w[0],ok);
+  showResult(ok,ok?["ถูกต้อง!","เก่งมาก!","เยี่ยมเลย!","ดีมาก!"][Math.floor(Math.random()*4)]:"ยังไม่ถูก ไม่เป็นไรนะ",extra);
+}
+function showResult(ok,title,detail){
+  const it=L.items[L.idx],p=P();
+  if(ok===false){
+    L.mistakes++;
+    if(!L.retried.has(L.idx)){L.retried.add(L.idx);L.items.push(it);L.total++}
+    $("lHearts").textContent="∞";
+  }else if(ok){L.xpEarned+=it.t==="speak"||it.t==="sayword"?3:2}
+  const cls=ok===false?"bad":ok?"good":"";
+  setFoot(`<div class="verdict-row">${mascot(ok===false?"sad":ok?"cheer":"happy")}<div class="verdict">${esc(title)}${detail?`<small>${detail.includes("<")?detail:esc(detail)}</small>`:""}</div></div><button class="btn ${ok===false?"bad":"good"}" type="button" id="nextBtn">ต่อไป</button>`,cls);
+  if(ok===false&&(it.w||it.s||it.d))say(it.w?it.w[0]:it.s?it.s[0]:it.d[it.i][1]);
+  $("nextBtn").focus();
+}
+function finishLesson(){
+  const p=P(),u=L.u,perfect=L.mistakes===0,gain=10+L.xpEarned+(perfect?5:0);
+  p.xp+=gain;p.lessons=(p.lessons||0)+1;let passed=false;if(L.kind==="unit"&&uprog(u)===L.step){p.prog[u.id]=L.step+1;passed=p.prog[u.id]>=STEPS.length}
+  const t=today();if(p.lastDay!==t){p.streak=p.lastDay===yesterday()?p.streak+1:1;p.lastDay=t}
+  if(p.daily.day!==t)p.daily={day:t,xp:0};p.daily.xp+=gain;save();
+  $("progBar").style.width="100%";
+  $("lbody").innerHTML=`<div class="done-screen">${mascot("cheer")}<h2>${passed?"ผ่านบทที่ "+(L.ui+1)+" แล้ว! 🏆":perfect?"ไม่ผิดเลยสักข้อ!":"จบบทเรียนแล้ว!"}</h2>
+    <p class="sub" style="margin:0">${L.kind==="unit"?`บทที่ ${L.ui+1} ${esc(u.title)} · ${esc(STEPS[L.step].t)}${passed?" · ปลดล็อกบทถัดไปแล้ว":""}`:L.kind==="vocab"?`ชุดคำศัพท์ ${esc(u.title)} · จำได้ ${u.words.filter(w=>known(w[0])).length}/${u.words.length} คำ`:"ทบทวนคำศัพท์เสร็จแล้ว"}</p>
+    <div class="tiles"><div class="tile">+${gain}<small>XP</small></div><div class="tile">🔥 ${p.streak}<small>วันติดกัน</small></div><div class="tile">${L.mistakes}<small>ข้อที่ผิด</small></div></div></div>`;
+  setFoot(`<button class="btn" type="button" id="doneBtn">กลับหน้าหลัก</button>`,"");
+  say(perfect?"Perfect! Great job!":"Well done!");
+}
+$("footIn").addEventListener("click",e=>{
+  const id=e.target.closest("button")?.id;
+  if(id==="checkBtn")check();
+  else if(id==="doneBtn")closeLesson();
+  else if(id==="nextBtn"){if(P().hearts<=0){showNoHearts();return}L.idx++;renderItem()}
+});
+function showNoHearts(){
+  L=null;const p=P(),mins=Math.max(1,Math.ceil((REFILL_MS-(Date.now()-p.heartTs))/60000));
+  $("lesson").hidden=false;$("progBar").style.width="0%";$("lHearts").textContent="∞";
+  $("lbody").innerHTML=`<div class="done-screen">${mascot("sad")}<h2>หัวใจหมดแล้ว</h2><p class="sub" style="margin:0">พักสักครู่นะ อีกประมาณ ${mins} นาทีจะได้หัวใจคืน 1 ดวง<br>ระหว่างรอ ไปคุยกับครู AI หรือทบทวนคำศัพท์ได้</p></div>`;
+  setFoot(`<button class="btn" type="button" id="doneBtn">กลับหน้าหลัก</button>`,"");
+}
+
+/* ================= 2,848 most-used English words =================
+   Word list: New General Service List 1.01 + supplementary list (Browne, Culligan & Phillips),
+   licensed CC BY-SA 4.0 — https://www.newgeneralservicelist.com . Thai meanings added for Talk Buddy. */
+const NGSL_RAW="the|คำนำหน้านาม (ชี้เฉพาะ)\nbe|เป็น / อยู่ / คือ\nand|และ\nof|ของ\nto|ถึง / ไปยัง\na|หนึ่ง (คำนำหน้านาม)\nin|ใน\nhave|มี\nit|มัน\nyou|คุณ\nhe|เขา (ผู้ชาย)\nfor|สำหรับ\nthey|พวกเขา\nnot|ไม่\nthat|นั่น / ว่า\nwe|พวกเรา\non|บน\nwith|กับ / ด้วย\nthis|นี่ / นี้\nI|ฉัน\ndo|ทำ\nas|ในฐานะ / เท่ากับ\nat|ที่\nshe|เธอ (ผู้หญิง)\nbut|แต่\nfrom|จาก\nby|โดย\nwill|จะ\nor|หรือ\nsay|พูด / บอก\ngo|ไป\nso|ดังนั้น / มาก\nall|ทั้งหมด\nif|ถ้า\none|หนึ่ง\nwould|จะ (แบบสมมติ)\nabout|เกี่ยวกับ / ประมาณ\ncan|สามารถ / ได้\nwhich|อันไหน / ซึ่ง\nthere|ที่นั่น / มี\nknow|รู้\nmore|มากกว่า\nget|ได้รับ\nwho|ใคร / ผู้ซึ่ง\nlike|ชอบ / เหมือน\nwhen|เมื่อไหร่ / เมื่อ\nthink|คิด\nmake|ทำ / สร้าง\ntime|เวลา / ครั้ง\nsee|เห็น\nwhat|อะไร\nup|ขึ้น\nsome|บาง / บ้าง\nother|อื่น\nout|ออก / ข้างนอก\ngood|ดี\npeople|ผู้คน\nyear|ปี\ntake|เอาไป / ใช้ (เวลา)\nno|ไม่ / ไม่มี\nwell|ดี / อืม\nbecause|เพราะ\nvery|มาก\njust|แค่ / เพิ่ง\ncome|มา\ncould|สามารถ (อดีต) / อาจจะ\nwork|ทำงาน / งาน\nuse|ใช้\nthan|กว่า\nnow|ตอนนี้\nthen|แล้ว / ตอนนั้น\nalso|ด้วย / เช่นกัน\ninto|เข้าไปใน\nonly|เท่านั้น\nlook|มอง / ดู\nwant|ต้องการ\ngive|ให้\nfirst|แรก / ก่อน\nnew|ใหม่\nway|ทาง / วิธี\nfind|หา / พบ\nover|เหนือ / เกิน / จบ\nany|ใดๆ\nafter|หลังจาก\nday|วัน\nwhere|ที่ไหน\nthing|สิ่ง / ของ\nmost|มากที่สุด\nshould|ควร\nneed|ต้องการ / จำเป็น\nmuch|มาก\nright|ถูกต้อง / ขวา\nhow|อย่างไร\nback|กลับ / หลัง\nmean|หมายความว่า\neven|แม้แต่\nmay|อาจจะ\nhere|ที่นี่\nmany|หลาย / มาก\nsuch|เช่นนั้น / ขนาดนั้น\nlast|สุดท้าย / ที่แล้ว\nchild|เด็ก\ntell|บอก\nreally|จริงๆ\ncall|โทร / เรียก\nbefore|ก่อน\ncompany|บริษัท\nthrough|ผ่าน\ndown|ลง\nshow|แสดง / การแสดง\nlife|ชีวิต\nman|ผู้ชาย\nchange|เปลี่ยน / การเปลี่ยนแปลง\nplace|สถานที่\nlong|ยาว / นาน\nbetween|ระหว่าง\nfeel|รู้สึก\ntoo|เกินไป / ด้วย\nstill|ยัง / ยังคง\nproblem|ปัญหา\nwrite|เขียน\nsame|เหมือนกัน\nlot|มาก (a lot)\ngreat|ยอดเยี่ยม / ใหญ่\ntry|พยายาม / ลอง\nleave|ออกไป / ทิ้งไว้\nnumber|ตัวเลข / จำนวน\nboth|ทั้งสอง\nown|ของตัวเอง\npart|ส่วน\npoint|จุด / ประเด็น\nlittle|เล็ก / นิดหน่อย\nhelp|ช่วย\nask|ถาม / ขอ\nmeet|พบ / เจอ\nstart|เริ่ม\ntalk|คุย / พูด\nsomething|บางสิ่ง\nput|วาง / ใส่\nanother|อีกอัน / อื่น\nbecome|กลายเป็น\ninterest|ความสนใจ / ดอกเบี้ย\ncountry|ประเทศ\nold|เก่า / แก่\neach|แต่ละ\nschool|โรงเรียน\nlate|สาย / ช้า\nhigh|สูง\ndifferent|แตกต่าง\noff|ปิด / ออกจาก\nnext|ถัดไป\nend|จบ / ตอนท้าย\nlive|อาศัยอยู่ / มีชีวิต\nwhy|ทำไม\nwhile|ขณะที่\nworld|โลก\nweek|สัปดาห์\nplay|เล่น\nmight|อาจจะ\nmust|ต้อง\nhome|บ้าน\nnever|ไม่เคย\ninclude|รวม\ncourse|หลักสูตร / แน่นอน (of course)\nhouse|บ้าน\nreport|รายงาน\ngroup|กลุ่ม\ncase|กรณี / กล่อง\nwoman|ผู้หญิง\naround|รอบๆ / ประมาณ\nbook|หนังสือ / จอง\nfamily|ครอบครัว\nseem|ดูเหมือน\nlet|ให้ / ปล่อย\nagain|อีกครั้ง\nkind|ชนิด / ใจดี\nkeep|เก็บ / รักษา\nhear|ได้ยิน\nsystem|ระบบ\nevery|ทุก\nquestion|คำถาม\nduring|ระหว่าง\nalways|เสมอ\nbig|ใหญ่\nset|ตั้ง / ชุด\nsmall|เล็ก\nstudy|เรียน / ศึกษา\nfollow|ตาม\nbegin|เริ่ม\nimportant|สำคัญ\nsince|ตั้งแต่ / เนื่องจาก\nrun|วิ่ง / ดำเนินการ\nunder|ใต้\nturn|หมุน / เลี้ยว / ตา (ถึงตา)\nfew|ไม่กี่ / น้อย\nbring|นำมา\nearly|เช้า / แต่เนิ่นๆ\nhand|มือ / ส่งให้\nstate|รัฐ / สภาพ / ระบุ\nmove|ย้าย / เคลื่อนที่\nmoney|เงิน\nfact|ข้อเท็จจริง\nhowever|อย่างไรก็ตาม\narea|พื้นที่\nprovide|จัดหาให้\nname|ชื่อ\nread|อ่าน\nfriend|เพื่อน\nmonth|เดือน\nlarge|ใหญ่\nbusiness|ธุรกิจ\nwithout|โดยไม่มี\ninformation|ข้อมูล\nopen|เปิด\norder|สั่ง / คำสั่งซื้อ / ลำดับ\ngovernment|รัฐบาล\nword|คำ\nissue|ประเด็น / ปัญหา / ออก (เอกสาร)\nmarket|ตลาด\npay|จ่าย\nbuild|สร้าง\nhold|ถือ / จัด (งาน)\nservice|บริการ\nagainst|ต่อต้าน / พิง\nbelieve|เชื่อ\nsecond|ที่สอง / วินาที\nthough|แม้ว่า\nyes|ใช่\nlove|รัก\nincrease|เพิ่มขึ้น\njob|งาน\nplan|แผน / วางแผน\nresult|ผลลัพธ์\naway|ห่างออกไป\nexample|ตัวอย่าง\nhappen|เกิดขึ้น\noffer|เสนอ / ข้อเสนอ\nyoung|หนุ่มสาว / อายุน้อย\nclose|ปิด / ใกล้\nprogram|โปรแกรม / รายการ\nlead|นำ / ผู้นำ\nbuy|ซื้อ\nunderstand|เข้าใจ\nthank|ขอบคุณ\nfar|ไกล\ntoday|วันนี้\nhour|ชั่วโมง\nstudent|นักเรียน\nface|ใบหน้า / เผชิญ\nhope|หวัง\nidea|ความคิด / ไอเดีย\ncost|ราคา / ค่าใช้จ่าย\nless|น้อยกว่า\nroom|ห้อง\nuntil|จนกระทั่ง\nreason|เหตุผล\nform|แบบฟอร์ม / รูปแบบ\nspend|ใช้ (เงิน/เวลา)\nhead|หัว / มุ่งหน้า\ncar|รถยนต์\nlearn|เรียนรู้\nlevel|ระดับ\nperson|บุคคล\nexperience|ประสบการณ์\nonce|ครั้งหนึ่ง / เมื่อ\nmember|สมาชิก\nenough|พอ\nbad|ไม่ดี\ncity|เมือง\nnight|กลางคืน\nable|สามารถ\nsupport|สนับสนุน\nwhether|ไม่ว่า / หรือไม่\nline|เส้น / แถว\npresent|ปัจจุบัน / ของขวัญ / นำเสนอ\nside|ด้าน / ข้าง\nquite|ค่อนข้าง\nalthough|ถึงแม้ว่า\nsure|แน่ใจ\nterm|คำศัพท์ / ภาคเรียน / เงื่อนไข\nleast|น้อยที่สุด\nage|อายุ\nlow|ต่ำ\nspeak|พูด\nwithin|ภายใน\nprocess|กระบวนการ\npublic|สาธารณะ\noften|บ่อย\ntrain|รถไฟ / ฝึก\npossible|เป็นไปได้\nactually|จริงๆ แล้ว\nrather|ค่อนข้าง / แทนที่จะ\nview|มุมมอง / วิว\ntogether|ด้วยกัน\nconsider|พิจารณา\nprice|ราคา\nparent|พ่อแม่ / ผู้ปกครอง\nhard|ยาก / แข็ง / อย่างหนัก\nparty|งานเลี้ยง / พรรค\nlocal|ท้องถิ่น\ncontrol|ควบคุม\nalready|แล้ว (เรียบร้อยแล้ว)\nconcern|ความกังวล / เกี่ยวข้อง\nproduct|ผลิตภัณฑ์\nlose|แพ้ / ทำหาย\nstory|เรื่องราว\nalmost|เกือบ\ncontinue|ทำต่อ\nstand|ยืน\nwhole|ทั้งหมด\nyet|ยัง\nrate|อัตรา\ncare|ดูแล / ใส่ใจ\nexpect|คาดหวัง\neffect|ผลกระทบ\nsort|ชนิด / จัดเรียง\never|เคย\nanything|อะไรก็ได้\ncause|สาเหตุ / ทำให้เกิด\nfall|ตก / ล้ม / ฤดูใบไม้ร่วง\ndeal|ข้อตกลง / จัดการ\nwater|น้ำ\nsend|ส่ง\nallow|อนุญาต\nsoon|เร็วๆ นี้\nwatch|ดู / นาฬิกาข้อมือ\nbase|ฐาน\nprobably|อาจจะ (น่าจะ)\nsuggest|แนะนำ\npast|อดีต / ผ่าน\npower|พลัง / อำนาจ / ไฟฟ้า\ntest|ทดสอบ / การสอบ\nvisit|เยี่ยม / ไปเที่ยว\ncenter|ศูนย์กลาง\ngrow|เติบโต / ปลูก\nnothing|ไม่มีอะไร\nreturn|กลับ / คืน\nmother|แม่\nwalk|เดิน\nmatter|เรื่อง / สำคัญ\nmind|จิตใจ / ถือสา\nvalue|คุณค่า / มูลค่า\noffice|สำนักงาน\nrecord|บันทึก / สถิติ\nstay|พัก / อยู่\nforce|บังคับ / กำลัง\nstop|หยุด\nseveral|หลาย\nlight|แสง / เบา / ไฟ\ndevelop|พัฒนา\nremember|จำ\nbit|นิดหน่อย\nshare|แบ่งปัน / หุ้น\nreal|จริง\nanswer|คำตอบ / ตอบ\nsit|นั่ง\nfigure|ตัวเลข / รูปร่าง / คิดออก\nletter|จดหมาย / ตัวอักษร\ndecide|ตัดสินใจ\nlanguage|ภาษา\nsubject|วิชา / หัวข้อ\nclass|ชั้นเรียน\ndevelopment|การพัฒนา\ntown|เมือง\nhalf|ครึ่ง\nminute|นาที\nfood|อาหาร\nbreak|แตก / พัก\nclear|ชัดเจน / ใส\nfuture|อนาคต\neither|อย่างใดอย่างหนึ่ง\nago|ที่แล้ว (เวลาที่ผ่านมา)\nper|ต่อ (เช่น ต่อวัน)\nremain|ยังคงอยู่\ntop|ด้านบน / สูงสุด\namong|ท่ามกลาง\nwin|ชนะ\ncolor|สี\ninvolve|เกี่ยวข้อง\nreach|ไปถึง / เอื้อม\nsocial|สังคม\nperiod|ช่วงเวลา\nacross|ข้าม / ทั่ว\nnote|บันทึก / โน้ต\nhistory|ประวัติศาสตร์\ncreate|สร้าง\ndrive|ขับรถ\nalong|ตามไป / ไปด้วย\ntype|ชนิด / พิมพ์\nsound|เสียง / ฟังดู\neye|ตา\nmusic|ดนตรี\ngame|เกม\npolitical|ทางการเมือง\nfree|ฟรี / อิสระ\nreceive|ได้รับ\nmoment|ช่วงเวลา / สักครู่\nsale|การขาย / ลดราคา\npolicy|นโยบาย\nfurther|ต่อไป / เพิ่มเติม\nbody|ร่างกาย\nrequire|ต้องการ / กำหนดให้\nwait|รอ\ngeneral|ทั่วไป\nappear|ปรากฏ / ดูเหมือน\ntoward|ไปทาง / ต่อ\nteam|ทีม\neasy|ง่าย\nindividual|บุคคล / แต่ละคน\nfull|เต็ม / อิ่ม\nblack|สีดำ\nsense|ความรู้สึก / ประสาทสัมผัส\nperhaps|บางที\nadd|เพิ่ม\nrule|กฎ\npass|ผ่าน / ส่งให้\nproduce|ผลิต\nsell|ขาย\nshort|สั้น / เตี้ย\nagree|เห็นด้วย\nlaw|กฎหมาย\neverything|ทุกอย่าง\nresearch|การวิจัย\ncover|ปิด / ครอบคลุม / ปก\npaper|กระดาษ\nposition|ตำแหน่ง\nnear|ใกล้\nhuman|มนุษย์\ncomputer|คอมพิวเตอร์\nsituation|สถานการณ์\nstaff|พนักงาน\nactivity|กิจกรรม\nfilm|ภาพยนตร์\nmorning|ตอนเช้า\nwar|สงคราม\naccount|บัญชี\nshop|ร้านค้า / ซื้อของ\nmajor|หลัก / สำคัญ\nsomeone|ใครบางคน\nabove|ข้างบน / เหนือ\ndesign|ออกแบบ\nevent|เหตุการณ์ / งาน (อีเวนต์)\nspecial|พิเศษ\nsometimes|บางครั้ง\ncondition|สภาพ / เงื่อนไข\ncarry|ถือ / แบก\nchoose|เลือก\nfather|พ่อ\ndecision|การตัดสินใจ\ntable|โต๊ะ / ตาราง\ncertain|แน่นอน / บางอย่าง\nforward|ไปข้างหน้า / ส่งต่อ\nmain|หลัก\ndie|ตาย\nbear|หมี / ทน\ncut|ตัด\ndescribe|อธิบาย / บรรยาย\nhimself|ตัวเขาเอง\navailable|ว่าง / มีให้ใช้\nespecially|โดยเฉพาะ\nstrong|แข็งแรง\nrise|ขึ้น / เพิ่มขึ้น\ngirl|เด็กผู้หญิง\nmaybe|บางที\ncommunity|ชุมชน\nelse|อื่น\nparticular|เฉพาะ\nrole|บทบาท\njoin|เข้าร่วม\ndifficult|ยาก\nplease|กรุณา / ทำให้พอใจ\ndetail|รายละเอียด\ndifference|ความแตกต่าง\naction|การกระทำ\nhealth|สุขภาพ\neat|กิน\nstep|ขั้นตอน / ก้าว\ntrue|จริง\nphone|โทรศัพท์\nthemselves|ตัวพวกเขาเอง\ndraw|วาด\nwhite|สีขาว\ndate|วันที่ / นัด\npractice|ฝึกฝน\nmodel|แบบจำลอง / นางแบบ\nraise|ยกขึ้น / เลี้ยงดู\ncustomer|ลูกค้า\nfront|ด้านหน้า\nexplain|อธิบาย\ndoor|ประตู\noutside|ข้างนอก\nbehind|ข้างหลัง\neconomic|ทางเศรษฐกิจ\nsite|สถานที่ / เว็บไซต์\napproach|วิธีการ / เข้าใกล้\nteacher|ครู\nland|ที่ดิน / ลงจอด\ncharge|ค่าธรรมเนียม / ชาร์จ\nfinally|ในที่สุด\nsign|ป้าย / เซ็นชื่อ\nclaim|อ้าง / เรียกร้อง\nrelationship|ความสัมพันธ์\ntravel|เดินทาง\nenjoy|สนุกกับ\ndeath|ความตาย\nnice|ดี / น่ารัก\namount|จำนวน\nimprove|ปรับปรุง\npicture|รูปภาพ\nboy|เด็กผู้ชาย\nregard|ถือว่า / เกี่ยวกับ\norganization|องค์กร\nhappy|มีความสุข\ncouple|คู่ / สองสาม\nact|กระทำ / แสดง\nrange|ช่วง / ขอบเขต\nquality|คุณภาพ\nproject|โครงการ\nround|กลม / รอบ\nopportunity|โอกาส\nroad|ถนน\naccord|ความสอดคล้อง (according to = ตาม)\nlist|รายการ\nwish|ปรารถนา / อวยพร\ntherefore|ดังนั้น\nwear|สวมใส่\nfund|กองทุน / เงินทุน\nrest|พักผ่อน / ส่วนที่เหลือ\nkid|เด็ก\nindustry|อุตสาหกรรม\neducation|การศึกษา\nmeasure|วัด\nkill|ฆ่า\nserve|เสิร์ฟ / ให้บริการ\nlikely|น่าจะ\ncertainly|แน่นอน\nnational|แห่งชาติ\nitself|ตัวมันเอง\nteach|สอน\nfield|ทุ่ง / สาขา\nsecurity|ความปลอดภัย\nair|อากาศ\nbenefit|ประโยชน์\ntrade|การค้า\nrisk|ความเสี่ยง\nnews|ข่าว\nstandard|มาตรฐาน\nvote|ลงคะแนน\npercent|เปอร์เซ็นต์\nfocus|โฟกัส / มุ่งเน้น\nstage|เวที / ขั้นตอน\nspace|พื้นที่ / อวกาศ\ninstead|แทน\nrealize|ตระหนัก / รู้ตัว\nusually|มักจะ / ปกติ\ndata|ข้อมูล\nsingle|เดี่ยว / โสด\naddress|ที่อยู่\nperformance|ผลงาน / การแสดง\nchance|โอกาส\naccept|ยอมรับ\nsociety|สังคม\ntechnology|เทคโนโลยี\nmention|กล่าวถึง\nchoice|ทางเลือก\nsave|ประหยัด / บันทึก / ช่วยชีวิต\ncommon|ทั่วไป / ร่วมกัน\nculture|วัฒนธรรม\ntotal|ทั้งหมด / ยอดรวม\ndemand|ความต้องการ / เรียกร้อง\nmaterial|วัสดุ\nlimit|ขีดจำกัด\nlisten|ฟัง\ndue|ครบกำหนด / เนื่องจาก\nwrong|ผิด\nfoot|เท้า\neffort|ความพยายาม\nattention|ความสนใจ\nupon|บน\ncheck|ตรวจสอบ\ncomplete|สมบูรณ์ / ทำให้เสร็จ\nlie|โกหก / นอนลง\npick|เลือก / หยิบ\nreduce|ลด\npersonal|ส่วนตัว\nground|พื้นดิน\nanimal|สัตว์\narrive|มาถึง\npatient|ผู้ป่วย / อดทน\ncurrent|ปัจจุบัน\ncentury|ศตวรรษ\nevidence|หลักฐาน\nexist|มีอยู่\nsimilar|คล้ายกัน\nfight|ต่อสู้\nleader|ผู้นำ\nfine|สบายดี / ค่าปรับ\nstreet|ถนน\nformer|อดีต / เดิม\ncontact|ติดต่อ\nparticularly|โดยเฉพาะ\nwife|ภรรยา\nsport|กีฬา\nprepare|เตรียม\ndiscuss|อภิปราย / พูดคุย\nresponse|การตอบสนอง\nvoice|เสียง (พูด)\npiece|ชิ้น\nfinish|เสร็จ / จบ\nsuppose|สมมติ / คิดว่า\napply|สมัคร / ใช้\npresident|ประธานาธิบดี / ประธาน\nfire|ไฟ / ไล่ออก\ncompare|เปรียบเทียบ\ncourt|ศาล / สนาม\npolice|ตำรวจ\nstore|ร้านค้า / เก็บ\npoor|จน / แย่\nknowledge|ความรู้\nlaugh|หัวเราะ\narm|แขน\nheart|หัวใจ\nsource|แหล่งที่มา\nemployee|พนักงาน\nmanage|จัดการ\nsimply|เพียงแค่\nbank|ธนาคาร\nfirm|บริษัท / มั่นคง\ncell|เซลล์ / มือถือ\narticle|บทความ\nfast|เร็ว\nattack|โจมตี\nforeign|ต่างประเทศ\nsurprise|ทำให้ประหลาดใจ / เซอร์ไพรส์\nfeature|ลักษณะเด่น / ฟีเจอร์\nfactor|ปัจจัย\npretty|สวย / ค่อนข้าง\nrecently|เมื่อเร็วๆ นี้\naffect|ส่งผลกระทบ\ndrop|ทำตก / ลดลง\nrecent|ล่าสุด\nrelate|เกี่ยวข้อง\nofficial|เป็นทางการ / เจ้าหน้าที่\nfinancial|ทางการเงิน\nmiss|พลาด / คิดถึง\nart|ศิลปะ\ncampaign|การรณรงค์ / แคมเปญ\nprivate|ส่วนตัว / เอกชน\npause|หยุดชั่วคราว\neveryone|ทุกคน\nforget|ลืม\npage|หน้า\nworry|กังวล\nsummer|ฤดูร้อน\ndrink|ดื่ม\nopinion|ความคิดเห็น\npark|สวนสาธารณะ / จอดรถ\nrepresent|เป็นตัวแทน\nkey|กุญแจ / สำคัญ\ninside|ข้างใน\nmanager|ผู้จัดการ\ninternational|นานาชาติ\ncontain|บรรจุ / มี\nnotice|สังเกต / ประกาศ\nwonder|สงสัย\nnature|ธรรมชาติ\nstructure|โครงสร้าง\nsection|ส่วน / หมวด\nmyself|ตัวฉันเอง\nexactly|อย่างแน่นอน / ตรงเป๊ะ\nplant|พืช / ปลูก / โรงงาน\npaint|ทาสี / วาดภาพ\nworker|คนงาน\npress|กด / สื่อมวลชน\nwhatever|อะไรก็ตาม\nnecessary|จำเป็น\nregion|ภูมิภาค\ngrowth|การเติบโต\nevening|ตอนเย็น\ninfluence|อิทธิพล\nrespect|เคารพ\nvarious|หลากหลาย\ncatch|จับ / ทัน\nthus|ดังนั้น\nskill|ทักษะ\nattempt|พยายาม\nson|ลูกชาย\nsimple|ง่าย / เรียบง่าย\nmedium|ปานกลาง / สื่อ\naverage|เฉลี่ย\nstock|สต็อก / หุ้น\nmanagement|การจัดการ / ฝ่ายบริหาร\ncharacter|ตัวละคร / นิสัย\nbed|เตียง\nhit|ตี / ชน\nestablish|ก่อตั้ง\nindeed|จริงๆ\nfinal|สุดท้าย\neconomy|เศรษฐกิจ\nfit|พอดี / ฟิต\nguy|ผู้ชาย / หมอนี่\nfunction|หน้าที่ / ฟังก์ชัน\nyesterday|เมื่อวาน\nimage|ภาพ\nsize|ขนาด\nbehavior|พฤติกรรม\naddition|การเพิ่ม (in addition = นอกจากนี้)\ndetermine|กำหนด / ตัดสิน\nstation|สถานี\npopulation|ประชากร\nfail|ล้มเหลว / สอบตก\nenvironment|สิ่งแวดล้อม\nproduction|การผลิต\ncontract|สัญญา\nplayer|ผู้เล่น\ncomment|ความคิดเห็น\nenter|เข้า / ป้อน\noccur|เกิดขึ้น\nalone|คนเดียว\nsignificant|สำคัญ / มีนัยสำคัญ\ndrug|ยา / ยาเสพติด\nwall|กำแพง / ผนัง\nseries|ชุด / ซีรีส์\ndirect|โดยตรง / กำกับ\nsuccess|ความสำเร็จ\ntomorrow|พรุ่งนี้\ndirector|ผู้อำนวยการ / ผู้กำกับ\nclearly|อย่างชัดเจน\nlack|ขาด\nreview|ทบทวน / รีวิว\ndepend|ขึ้นอยู่กับ\nrace|การแข่งขัน / เชื้อชาติ\nrecognize|จำได้ / ยอมรับ\nwindow|หน้าต่าง\npurpose|จุดประสงค์\ndepartment|แผนก\ngain|ได้รับ\ntree|ต้นไม้\ncollege|วิทยาลัย\nargue|โต้เถียง\nboard|กระดาน / คณะกรรมการ / ขึ้น (รถ/เรือ)\nholiday|วันหยุด\nmark|เครื่องหมาย / คะแนน\nchurch|โบสถ์\nmachine|เครื่องจักร\nachieve|บรรลุ / ทำสำเร็จ\nitem|รายการ / สิ่งของ\nprove|พิสูจน์\ncent|เซ็นต์\nseason|ฤดู\nfloor|พื้น / ชั้น\nstuff|ของ / สิ่งของ\nwide|กว้าง\nanyone|ใครก็ได้\nmethod|วิธีการ\nanalysis|การวิเคราะห์\nelection|การเลือกตั้ง\nmilitary|ทหาร / ทางการทหาร\nhotel|โรงแรม\nclub|ชมรม / สโมสร\nbelow|ข้างล่าง\nmovie|ภาพยนตร์\ndoctor|หมอ\ndiscussion|การอภิปราย\nsorry|ขอโทษ / เสียใจ\nchallenge|ความท้าทาย\nnation|ชาติ\nnearly|เกือบ\nstatement|คำแถลง / ใบแจ้งยอด\nlink|ลิงก์ / เชื่อมโยง\ndespite|ถึงแม้ว่า\nintroduce|แนะนำ\nadvantage|ข้อได้เปรียบ\nready|พร้อม\nmarry|แต่งงาน\nstrike|ตี / นัดหยุดงาน\nmile|ไมล์\nseek|แสวงหา\nability|ความสามารถ\nunit|หน่วย\ncard|บัตร / การ์ด\nhospital|โรงพยาบาล\nquickly|อย่างรวดเร็ว\ninterview|สัมภาษณ์\nagreement|ข้อตกลง\nrelease|ปล่อย / เปิดตัว\ntax|ภาษี\nsolution|ทางแก้\ncapital|เมืองหลวง / เงินทุน\npopular|เป็นที่นิยม\nspecific|เฉพาะเจาะจง\nbeautiful|สวย\nfear|ความกลัว\naim|เป้าหมาย / เล็ง\ntelevision|โทรทัศน์\nserious|จริงจัง / ร้ายแรง\ntarget|เป้าหมาย\ndegree|องศา / ปริญญา\npull|ดึง\nred|สีแดง\nhusband|สามี\naccess|การเข้าถึง\nmovement|การเคลื่อนไหว\ntreat|ปฏิบัติต่อ / รักษา / เลี้ยง\nidentify|ระบุ\nloss|การสูญเสีย / ขาดทุน\nshall|จะ (ทางการ)\nmodern|ทันสมัย\npressure|ความกดดัน / แรงดัน\nbus|รถบัส\ntreatment|การรักษา\nyourself|ตัวคุณเอง\nsupply|จัดหา / สินค้าที่มี\nvillage|หมู่บ้าน\nworth|คุ้มค่า / มีมูลค่า\nnatural|ธรรมชาติ\nexpress|แสดงออก / ด่วน\nindicate|ชี้ / บ่งบอก\nattend|เข้าร่วม\nbrother|พี่ชาย / น้องชาย\ninvestment|การลงทุน\nscore|คะแนน\norganize|จัดระเบียบ / จัดงาน\ntrip|การเดินทาง / ทริป\nbeyond|เกินกว่า\nsleep|นอน\nfish|ปลา / ตกปลา\npromise|สัญญา\npotential|ศักยภาพ\nenergy|พลังงาน\ntrouble|ปัญหา\nrelation|ความสัมพันธ์\ntouch|สัมผัส\nfile|ไฟล์ / แฟ้ม\nmiddle|ตรงกลาง\nbar|บาร์ / แท่ง\nsuffer|ทนทุกข์\nstrategy|กลยุทธ์\ndeep|ลึก\nexcept|ยกเว้น\nclean|สะอาด / ทำความสะอาด\ntend|มีแนวโน้ม\nadvance|ล่วงหน้า / ก้าวหน้า\nfill|เติม\nstar|ดาว / ดารา\nnetwork|เครือข่าย\ngenerally|โดยทั่วไป\noperation|การดำเนินงาน / ผ่าตัด\nmatch|การแข่งขัน / เข้ากัน / ไม้ขีด\navoid|หลีกเลี่ยง\nseat|ที่นั่ง\nthrow|โยน\ntask|งาน / ภารกิจ\nnormal|ปกติ\ngoal|เป้าหมาย / ประตู (ฟุตบอล)\nassociate|เชื่อมโยง / ผู้ร่วมงาน\nblue|สีน้ำเงิน / สีฟ้า\npositive|บวก / เชิงบวก\noption|ตัวเลือก\nbox|กล่อง\nhuge|ใหญ่มาก\nmessage|ข้อความ\ninstance|ตัวอย่าง (for instance)\nstyle|สไตล์ / รูปแบบ\nrefer|อ้างถึง\ncold|เย็น / หนาว / หวัด\npush|ผลัก / ดัน\nquarter|หนึ่งในสี่ / ไตรมาส\nassume|สันนิษฐาน\nbaby|ทารก\nsuccessful|ประสบความสำเร็จ\nsing|ร้องเพลง\ndoubt|สงสัย\ncompetition|การแข่งขัน\ntheory|ทฤษฎี\npropose|เสนอ / ขอแต่งงาน\nreference|การอ้างอิง\nargument|การโต้เถียง / เหตุผล\nadult|ผู้ใหญ่\nfly|บิน / แมลงวัน\ndocument|เอกสาร\npattern|รูปแบบ / ลวดลาย\napplication|ใบสมัคร / แอปพลิเคชัน\nhot|ร้อน / เผ็ด\nobviously|เห็นได้ชัด\nunclear|ไม่ชัดเจน\nbill|บิล / ใบแจ้งหนี้\nsearch|ค้นหา\nseparate|แยก\ncentral|ส่วนกลาง\ncareer|อาชีพการงาน\nanyway|อย่างไรก็ตาม\nspeech|สุนทรพจน์ / การพูด\ndog|หมา\nofficer|เจ้าหน้าที่\nthroughout|ตลอด\noil|น้ำมัน\ndress|ชุดกระโปรง / แต่งตัว\nprofit|กำไร\nguess|เดา\nfun|สนุก\nprotect|ปกป้อง\nresource|ทรัพยากร\nscience|วิทยาศาสตร์\ndisease|โรค\nbalance|สมดุล / ยอดคงเหลือ\ndamage|ความเสียหาย\nbasis|พื้นฐาน\nauthor|ผู้เขียน\nbasic|พื้นฐาน\nencourage|ให้กำลังใจ / ส่งเสริม\nhair|ผม\nmale|เพศชาย\noperate|ดำเนินการ / ผ่าตัด\nreflect|สะท้อน\nexercise|ออกกำลังกาย / แบบฝึกหัด\nuseful|มีประโยชน์\nrestaurant|ร้านอาหาร\nincome|รายได้\nproperty|ทรัพย์สิน\nprevious|ก่อนหน้า\ndark|มืด\nimagine|จินตนาการ\nokay|ตกลง / โอเค\nearn|หาเงินได้\ndaughter|ลูกสาว\npost|โพสต์ / ไปรษณีย์ / ตำแหน่ง\nnewspaper|หนังสือพิมพ์\ndefine|นิยาม\nconclusion|บทสรุป\nclock|นาฬิกา\neverybody|ทุกคน\nweekend|สุดสัปดาห์\nperform|แสดง / ปฏิบัติ\nprofessional|มืออาชีพ\nmine|ของฉัน / เหมือง\ndebate|การโต้วาที\nmemory|ความทรงจำ / หน่วยความจำ\ngreen|สีเขียว\nsong|เพลง\nobject|วัตถุ / คัดค้าน\nmaintain|รักษา / ซ่อมบำรุง\ncredit|เครดิต\nring|แหวน / โทร / ดัง\ndiscover|ค้นพบ\ndead|ตาย\nafternoon|ตอนบ่าย\nprefer|ชอบมากกว่า\nextend|ขยาย / ต่อ\npossibility|ความเป็นไปได้\ndirection|ทิศทาง\nfacility|สิ่งอำนวยความสะดวก\nvariety|ความหลากหลาย\ndaily|ทุกวัน / รายวัน\nclothes|เสื้อผ้า\nscreen|หน้าจอ\ntrack|ราง / ติดตาม\ndance|เต้น\ncompletely|อย่างสมบูรณ์\nfemale|เพศหญิง\nresponsibility|ความรับผิดชอบ\noriginal|ต้นฉบับ / ดั้งเดิม\nsister|พี่สาว / น้องสาว\nrock|หิน / ร็อก\ndream|ความฝัน\nnor|และไม่\nuniversity|มหาวิทยาลัย\neasily|อย่างง่ายดาย\nagency|หน่วยงาน / เอเจนซี\ndollar|ดอลลาร์\ngarden|สวน\nfix|ซ่อม / แก้ไข\nahead|ข้างหน้า\ncross|ข้าม / ไม้กางเขน\nyeah|ใช่ (ภาษาพูด)\nweight|น้ำหนัก\nlegal|ถูกกฎหมาย / ทางกฎหมาย\nproposal|ข้อเสนอ\nversion|เวอร์ชัน / ฉบับ\nconversation|บทสนทนา\nsomebody|ใครบางคน\npound|ปอนด์\nmagazine|นิตยสาร\nshape|รูปร่าง\nsea|ทะเล\nimmediately|ทันที\nwelcome|ยินดีต้อนรับ\nsmile|ยิ้ม\ncommunication|การสื่อสาร\nagent|ตัวแทน\ntraditional|ดั้งเดิม / แบบประเพณี\nreplace|แทนที่\njudge|ผู้พิพากษา / ตัดสิน\nherself|ตัวเธอเอง\nsuddenly|ทันใดนั้น\ngeneration|รุ่น / เจเนอเรชัน\nestimate|ประมาณการ\nfavorite|ที่ชอบที่สุด\ndifficulty|ความยากลำบาก\npurchase|การซื้อ\nshoot|ยิง / ถ่ายทำ\nannounce|ประกาศ\nunless|เว้นแต่\nindependent|อิสระ\nrecommend|แนะนำ\nsurvey|การสำรวจ\nmajority|ส่วนใหญ่\nstick|ไม้ / ติด\nrequest|คำขอ\nrich|รวย\nwind|ลม\nnone|ไม่มีเลย\nexchange|แลกเปลี่ยน\nbudget|งบประมาณ\nfamous|มีชื่อเสียง\nblood|เลือด\nappropriate|เหมาะสม\nblock|บล็อก / ช่วงตึก\nwarm|อบอุ่น\ncount|นับ\nscene|ฉาก / ที่เกิดเหตุ\nwriter|นักเขียน\ncontent|เนื้อหา / พอใจ\nprevent|ป้องกัน\nsafe|ปลอดภัย / ตู้เซฟ\ninvite|เชิญ\nmix|ผสม\nelement|องค์ประกอบ\neffective|มีประสิทธิภาพ\ncorrect|ถูกต้อง / แก้ไข\nmedical|ทางการแพทย์\nadmit|ยอมรับ\nbeat|ตี / ชนะ / จังหวะ\ntelephone|โทรศัพท์\ncopy|สำเนา / คัดลอก\ncommittee|คณะกรรมการ\naware|ตระหนัก / รู้ตัว\nadvice|คำแนะนำ\nhandle|จัดการ / ด้ามจับ\nglass|แก้ว / กระจก\ntrial|การทดลอง / การพิจารณาคดี\nstress|ความเครียด / เน้น\nradio|วิทยุ\nadministration|การบริหาร\ncomplex|ซับซ้อน\ntext|ข้อความ\ncontext|บริบท\nride|ขี่ / นั่ง (รถ)\ndirectly|โดยตรง\nheavy|หนัก\nremove|เอาออก\nconduct|ดำเนินการ\nequipment|อุปกรณ์\notherwise|มิฉะนั้น\ntitle|ชื่อเรื่อง / ตำแหน่ง\nextra|พิเศษ / เพิ่มเติม\nexecutive|ผู้บริหาร\nchair|เก้าอี้ / ประธาน\nexpensive|แพง\nsample|ตัวอย่าง\nsex|เพศ\ndeliver|ส่ง (ของ)\nvideo|วิดีโอ\nconnection|การเชื่อมต่อ\nprimary|หลัก / ประถม\nweather|อากาศ\ncollect|เก็บรวบรวม\ninform|แจ้ง\nprinciple|หลักการ\nstraight|ตรง\nappeal|ดึงดูด / อุทธรณ์\nhighly|อย่างสูง\ntrust|ไว้ใจ\nwonderful|ยอดเยี่ยม\nflat|แบน / อพาร์ตเมนต์\nabsolutely|อย่างแน่นอน\nflow|ไหล\nfair|ยุติธรรม / งานแฟร์\nadditional|เพิ่มเติม\nresponsible|รับผิดชอบ\nfarm|ฟาร์ม / ไร่\ncollection|คอลเลกชัน / การเก็บ\nhang|แขวน\nnegative|ลบ / เชิงลบ\nband|วงดนตรี\nrelative|ญาติ / สัมพัทธ์\ntour|ทัวร์\nalternative|ทางเลือกอื่น\nsoftware|ซอฟต์แวร์\npair|คู่\nship|เรือ / ส่งสินค้า\nattitude|ทัศนคติ\ncheap|ถูก (ราคา)\ndouble|สองเท่า / คู่\nleg|ขา\nobserve|สังเกต\nsentence|ประโยค / โทษจำคุก\nprint|พิมพ์\nprogress|ความคืบหน้า\ntruth|ความจริง\nnobody|ไม่มีใคร\nexamine|ตรวจสอบ\nlay|วาง\nspeed|ความเร็ว\npolitics|การเมือง\nreply|ตอบกลับ\ndisplay|แสดง / จอแสดงผล\ntransfer|โอน / ย้าย\nperfect|สมบูรณ์แบบ\nslightly|เล็กน้อย\noverall|โดยรวม\nintend|ตั้งใจ\nuser|ผู้ใช้\nrespond|ตอบสนอง\ndinner|อาหารเย็น\nslow|ช้า\nregular|สม่ำเสมอ / ปกติ\nphysical|ทางกายภาพ\napart|แยกจากกัน\nsuit|ชุดสูท / เหมาะกับ\nfederal|ของรัฐบาลกลาง\nreveal|เปิดเผย\npercentage|เปอร์เซ็นต์\npeace|สันติภาพ\nstatus|สถานะ\ncrime|อาชญากรรม\ndecline|ลดลง / ปฏิเสธ\ndecade|ทศวรรษ\nlaunch|เปิดตัว\nwarn|เตือน\nconsumer|ผู้บริโภค\nfavor|ความช่วยเหลือ / เห็นด้วย\ndry|แห้ง\npartner|คู่หู / หุ้นส่วน\ninstitution|สถาบัน\nspot|จุด / สถานที่\nhorse|ม้า\neventually|ในที่สุด\nheat|ความร้อน\nexcite|ทำให้ตื่นเต้น\nreader|ผู้อ่าน\nimportance|ความสำคัญ\ndistance|ระยะทาง\nguide|ไกด์ / คู่มือ / นำทาง\ngrant|ทุน / อนุญาต\ntaxi|แท็กซี่\nfeed|ให้อาหาร\npain|ความเจ็บปวด\nsector|ภาคส่วน\nmistake|ความผิดพลาด\nensure|ทำให้แน่ใจ\nsatisfy|ทำให้พอใจ\nchief|หัวหน้า\ncool|เย็นสบาย / เท่\nexpert|ผู้เชี่ยวชาญ\nwave|คลื่น / โบกมือ\nsouth|ทิศใต้\nlabor|แรงงาน\nsurface|พื้นผิว\nlibrary|ห้องสมุด\nexcellent|ยอดเยี่ยม\nedge|ขอบ\ncamp|ค่าย / ตั้งแคมป์\naudience|ผู้ชม\nlift|ยก / ลิฟต์\nprocedure|ขั้นตอน\nemail|อีเมล\nglobal|ระดับโลก\nstruggle|ดิ้นรน\nadvertise|โฆษณา\nselect|เลือก\nsurround|ล้อมรอบ\nextent|ขอบเขต\nriver|แม่น้ำ\nannual|ประจำปี\nfully|อย่างเต็มที่\ncontrast|ความแตกต่าง\nroll|ม้วน / กลิ้ง\nreality|ความเป็นจริง\nphotograph|ภาพถ่าย\nartist|ศิลปิน\nconflict|ความขัดแย้ง\nentire|ทั้งหมด\npresence|การมีอยู่ / การปรากฏตัว\ncrowd|ฝูงชน\ncorner|มุม\ngas|แก๊ส / น้ำมันรถ\nshift|เปลี่ยน / กะทำงาน\nnet|ตาข่าย / สุทธิ\ncategory|หมวดหมู่\nsecretary|เลขานุการ\ndefense|การป้องกัน\nquick|เร็ว\ncook|ทำอาหาร / พ่อครัว\nspread|แพร่กระจาย / ทา\nnuclear|นิวเคลียร์\nscale|ขนาด / ตาชั่ง\ndriver|คนขับ\nball|ลูกบอล\ncry|ร้องไห้ / ตะโกน\nintroduction|บทนำ / การแนะนำ\nrequirement|ข้อกำหนด\nnorth|ทิศเหนือ\nconfirm|ยืนยัน\nsenior|อาวุโส / รุ่นพี่\nphoto|รูปถ่าย\nrefuse|ปฏิเสธ\ntransport|การขนส่ง\nemerge|ปรากฏขึ้น\nmap|แผนที่\nconcept|แนวคิด\nisland|เกาะ\nreform|ปฏิรูป\nneither|ไม่ทั้งสอง\nfootball|ฟุตบอล\nsurvive|รอดชีวิต\nflight|เที่ยวบิน\nleft|ซ้าย / เหลือ\nsolve|แก้ (ปัญหา)\nneighbor|เพื่อนบ้าน\nbackground|พื้นหลัง / ภูมิหลัง\ntechnique|เทคนิค\ntraffic|การจราจร\nimprovement|การปรับปรุง\ntool|เครื่องมือ\nconsequence|ผลที่ตามมา\ncircumstance|สถานการณ์\nsmoke|ควัน / สูบบุหรี่\nreaction|ปฏิกิริยา\nrain|ฝน\nbusy|ยุ่ง\nlesson|บทเรียน\nbrain|สมอง\nmass|มวล / จำนวนมาก\nfunny|ตลก\ncontribute|มีส่วนร่วม / บริจาค\nfailure|ความล้มเหลว\nschedule|ตารางเวลา\nspeaker|ผู้พูด / ลำโพง\nbottom|ด้านล่าง / ก้น\nadopt|รับเลี้ยง / นำมาใช้\ncombine|รวม\nmountain|ภูเขา\nwaste|ของเสีย / สิ้นเปลือง\nhide|ซ่อน\nmarriage|การแต่งงาน\nticket|ตั๋ว\nmeal|มื้ออาหาร\ncolleague|เพื่อนร่วมงาน\nbag|กระเป๋า / ถุง\nrepeat|ทำซ้ำ / พูดซ้ำ\nequal|เท่ากัน\nexpression|สีหน้า / สำนวน\nplus|บวก\nextremely|อย่างยิ่ง\nowner|เจ้าของ\nplane|เครื่องบิน\ncommercial|เชิงพาณิชย์ / โฆษณา\nlady|สุภาพสตรี\nduty|หน้าที่ / ภาษีนำเข้า\nstrength|ความแข็งแรง / จุดแข็ง\nconnect|เชื่อมต่อ\ncultural|ทางวัฒนธรรม\narrange|จัดเตรียม / จัดเรียง\nscheme|แผน / โครงการ\npayment|การชำระเงิน\nunfortunately|โชคร้ายที่ / น่าเสียดาย\nbrief|สั้น / สรุป\nbird|นก\ndemonstrate|สาธิต / แสดงให้เห็น\ncontribution|การมีส่วนร่วม / เงินบริจาค\nappreciate|ซาบซึ้ง / ชื่นชม\nchapter|บท (หนังสือ)\nsecret|ความลับ\napparently|ดูเหมือนว่า\nnovel|นวนิยาย / แปลกใหม่\nunion|สหภาพ\nburn|เผา / ไหม้\ntrend|แนวโน้ม / เทรนด์\ninitial|เริ่มต้น / อักษรย่อ\npleasure|ความยินดี\nsuggestion|ข้อเสนอแนะ\ncritical|วิกฤต / วิจารณ์\ngather|รวบรวม / ชุมนุม\nmostly|ส่วนใหญ่\nearth|โลก / ดิน\npop|ป๊อป / โผล่\nessential|จำเป็น\ndesire|ความปรารถนา\npromote|ส่งเสริม / เลื่อนตำแหน่ง\ncurrently|ในปัจจุบัน\nemploy|จ้าง\npath|ทางเดิน\ntopic|หัวข้อ\nbeach|ชายหาด\nattract|ดึงดูด\nengage|มีส่วนร่วม / หมั้น\npowerful|ทรงพลัง\nflower|ดอกไม้\ncrisis|วิกฤต\nsettle|ตั้งรกราก / ตกลง\nboat|เรือ\naid|ความช่วยเหลือ\nfan|พัดลม / แฟนคลับ\nkitchen|ห้องครัว\ntwice|สองครั้ง\nfresh|สด\ndelay|ล่าช้า\nsafety|ความปลอดภัย\nengineer|วิศวกร\nquiet|เงียบ\ninsurance|ประกันภัย\nnurse|พยาบาล\ndivide|แบ่ง / หาร\nlength|ความยาว\ninvestigation|การสืบสวน\npackage|พัสดุ / แพ็กเกจ\nsomewhere|ที่ไหนสักแห่ง\nexpand|ขยาย\ncommit|ทำ (ผิด) / ผูกมัด\nobvious|ชัดเจน\njump|กระโดด\nweapon|อาวุธ\nrelatively|ค่อนข้าง\nhost|เจ้าภาพ / พิธีกร\nwinter|ฤดูหนาว\ndistrict|เขต / อำเภอ\nbroad|กว้าง\ntire|ยางรถ / เหนื่อย\nspring|ฤดูใบไม้ผลิ / สปริง\nspirit|จิตวิญญาณ\nlunch|อาหารกลางวัน\nactual|จริง\npool|สระว่ายน้ำ\nbattle|การต่อสู้\ntradition|ประเพณี\ncash|เงินสด\nhardly|แทบจะไม่\naward|รางวัล\ncoach|โค้ช / รถโดยสาร\nexperiment|การทดลอง\nconsideration|การพิจารณา\nstrange|แปลก\ncode|รหัส / โค้ด\npossibly|อาจจะ\nthreat|ภัยคุกคาม\naccident|อุบัติเหตุ\nimpossible|เป็นไปไม่ได้\nrevenue|รายได้\nenable|ทำให้สามารถ\nafraid|กลัว\nactive|กระตือรือร้น / ใช้งานอยู่\nconclude|สรุป\nreligious|ทางศาสนา\ncancer|มะเร็ง\nconvince|โน้มน้าว\nvary|แตกต่างกันไป\nenvironmental|ทางสิ่งแวดล้อม\nsun|ดวงอาทิตย์\nhealthy|มีสุขภาพดี\nblow|เป่า / พัด\nvolume|ปริมาณ / เสียงดัง\nlocation|สถานที่ตั้ง\ninvest|ลงทุน\nproceed|ดำเนินต่อ\nwash|ล้าง / ซัก\nactor|นักแสดง\nglad|ดีใจ\ntape|เทป\nwhereas|ในขณะที่\nopposite|ตรงข้าม\nstone|หิน\nsum|ผลรวม\nmurder|ฆาตกรรม\nmonitor|จอภาพ / เฝ้าดู\nsoldier|ทหาร\nfinance|การเงิน\nhate|เกลียด\negg|ไข่\nconcert|คอนเสิร์ต\nshock|ตกใจ\ncomfortable|สบาย\nusual|ตามปกติ\ncarefully|อย่างระมัดระวัง\npack|แพ็ก / จัดกระเป๋า\nrecall|นึกถึง / เรียกคืน\nwine|ไวน์\ncamera|กล้อง\nswim|ว่ายน้ำ\nmanufacture|ผลิต\ntheater|โรงละคร\ncycle|วงจร / ปั่นจักรยาน\ncoffee|กาแฟ\ntotally|ทั้งหมด / โดยสิ้นเชิง\nmuseum|พิพิธภัณฑ์\nvisitor|ผู้มาเยือน\nfreedom|อิสรภาพ\nconstruction|การก่อสร้าง\ndear|ที่รัก\nobjective|วัตถุประสงค์\nmoreover|ยิ่งกว่านั้น\nonto|ลงบน\nhistorical|ทางประวัติศาสตร์\noppose|คัดค้าน\nbranch|กิ่ง / สาขา\nvehicle|ยานพาหนะ\nscientist|นักวิทยาศาสตร์\nroute|เส้นทาง\nbind|ผูก / มัด\nbelong|เป็นของ\ntaste|รสชาติ / ชิม\ntonight|คืนนี้\nfashion|แฟชั่น\ndanger|อันตราย\nbomb|ระเบิด\narmy|กองทัพ\ndangerous|อันตราย\ndecrease|ลดลง\nhurt|ทำให้เจ็บ / เจ็บ\ncouncil|สภา\neditor|บรรณาธิการ\nnormally|โดยปกติ\nsight|การมองเห็น / ภาพ\ngenerate|สร้าง / ผลิต\ngift|ของขวัญ\ndelivery|การจัดส่ง\ndeny|ปฏิเสธ\nguest|แขก\nanybody|ใครก็ได้\nbedroom|ห้องนอน\nquote|อ้างคำพูด / ใบเสนอราคา\nclimb|ปีน\nbasically|โดยพื้นฐาน\nviolence|ความรุนแรง\nminister|รัฐมนตรี\nmainly|ส่วนใหญ่\nmouth|ปาก\nnoise|เสียงดัง\nmanner|ท่าทาง / มารยาท\ngun|ปืน\nsquare|สี่เหลี่ยมจัตุรัส / จัตุรัส\noccasion|โอกาส / วาระ\nfamiliar|คุ้นเคย\nignore|เพิกเฉย\ndestroy|ทำลาย\naffair|เรื่อง / กิจการ\ncivil|พลเรือน\nlocate|หาตำแหน่ง / ตั้งอยู่\ncitizen|พลเมือง\ntemperature|อุณหภูมิ\ngold|ทอง\ndomestic|ภายในประเทศ / ในบ้าน\nload|บรรทุก / โหลด\nbelief|ความเชื่อ\ntroop|กองทหาร\ntechnical|ทางเทคนิค\nremind|เตือนความจำ\narrangement|การจัดเตรียม\nskin|ผิวหนัง\nprison|คุก\nswitch|สวิตช์ / สลับ\nacquire|ได้มา\ncorporate|ขององค์กร\nfairly|ค่อนข้าง / อย่างยุติธรรม\nwood|ไม้\nparticipate|เข้าร่วม\ntough|ยาก / เหนียว\ntear|น้ำตา / ฉีก\nrepresentative|ตัวแทน\ncapacity|ความจุ\nborder|ชายแดน / ขอบ\nshake|เขย่า / สั่น\nassessment|การประเมิน\nshoe|รองเท้า\nought|ควรจะ\nad|โฆษณา\nfee|ค่าธรรมเนียม\nhall|ห้องโถง\nregulation|กฎระเบียบ\nescape|หนี\nstudio|สตูดิโอ\nproper|เหมาะสม\nrelax|ผ่อนคลาย\ntourist|นักท่องเที่ยว\ncomponent|ส่วนประกอบ\nafford|มีเงินพอจะซื้อ\nlawyer|ทนายความ\nsuspect|สงสัย / ผู้ต้องสงสัย\ncup|ถ้วย\ndescription|คำอธิบาย\nconfidence|ความมั่นใจ\nindustrial|ทางอุตสาหกรรม\ncomplain|บ่น / ร้องเรียน\nperspective|มุมมอง\nerror|ข้อผิดพลาด\narrest|จับกุม\nassess|ประเมิน\nregister|ลงทะเบียน\nasset|ทรัพย์สิน\nsignal|สัญญาณ\nfinger|นิ้วมือ\nrelevant|เกี่ยวข้อง\nexplore|สำรวจ\nleadership|ภาวะผู้นำ\ncommitment|ความมุ่งมั่น\nwake|ตื่น\nnecessarily|จำเป็นต้อง\nbright|สว่าง / ฉลาด\nframe|กรอบ\nslowly|อย่างช้าๆ\nbond|พันธะ / ความผูกพัน\nhire|จ้าง / เช่า\nhole|รู\ntie|ผูก / เนกไท / เสมอ\ninternal|ภายใน\nchain|โซ่ / เครือ\nliterature|วรรณกรรม\nvictim|เหยื่อ\nthreaten|ขู่\ndivision|การแบ่ง / แผนก\nsecure|ปลอดภัย / ได้มา\namaze|ทำให้ประหลาดใจ\ndevice|อุปกรณ์\nbirth|การเกิด\nforest|ป่า\nlabel|ฉลาก / ป้าย\nroot|ราก\nfactory|โรงงาน\nexpense|ค่าใช้จ่าย\nchannel|ช่อง\ninvestigate|สืบสวน\nrecommendation|คำแนะนำ\nrank|อันดับ\ntypical|ทั่วไป / ตามแบบฉบับ\nwest|ทิศตะวันตก\nfriendly|เป็นมิตร\nresident|ผู้อยู่อาศัย\nprovision|การจัดหา / ข้อกำหนด\nconcentrate|ตั้งสมาธิ\nplenty|มากมาย\nexport|ส่งออก\nentirely|ทั้งหมด\nstrongly|อย่างหนักแน่น\nbridge|สะพาน\nconsist|ประกอบด้วย\ngraduate|จบการศึกษา / บัณฑิต\nbrand|ยี่ห้อ / แบรนด์\nmoral|ศีลธรรม\ninsist|ยืนกราน\ncombination|การรวมกัน\nabuse|การทำร้าย / ใช้ในทางที่ผิด\nice|น้ำแข็ง\nprincipal|ครูใหญ่ / หลัก\nmaster|เจ้านาย / ปริญญาโท / เชี่ยวชาญ\ndefinitely|แน่นอน\nsession|ช่วง / รอบ\ngrade|เกรด / ชั้นเรียน\nnevertheless|อย่างไรก็ตาม\npredict|ทำนาย\npreviously|ก่อนหน้านี้\nprotection|การป้องกัน\nlargely|ส่วนใหญ่\nwed|แต่งงาน\nrent|ค่าเช่า / เช่า\nshot|การยิง / ช็อต\nappearance|รูปลักษณ์\nreasonable|สมเหตุสมผล\nguarantee|รับประกัน\ntill|จนกระทั่ง\ntheme|ธีม / หัวข้อ\njudgment|การตัดสิน\nodd|แปลก / คี่\napprove|อนุมัติ\nloan|เงินกู้\ndefinition|คำนิยาม\nelect|เลือกตั้ง\natmosphere|บรรยากาศ\nfarmer|ชาวนา / เกษตรกร\ncomparison|การเปรียบเทียบ\ncharacteristic|ลักษณะเฉพาะ\nlicense|ใบอนุญาต\nrely|พึ่งพา\nnarrow|แคบ\nsucceed|ประสบความสำเร็จ\nidentity|ตัวตน\ndesk|โต๊ะทำงาน\npermit|อนุญาต / ใบอนุญาต\nseriously|อย่างจริงจัง\nwild|ป่า / ดุร้าย\nempty|ว่างเปล่า\ncommission|ค่านายหน้า / คณะกรรมการ\nunique|ไม่เหมือนใคร\nassociation|สมาคม\ninstrument|เครื่องดนตรี / เครื่องมือ\ninvestor|นักลงทุน\npractical|ใช้ได้จริง\ntea|ชา\nlovely|น่ารัก\nsoft|นุ่ม\nrow|แถว\nyouth|เยาวชน / วัยหนุ่มสาว\nlock|ล็อก / แม่กุญแจ\nfuel|เชื้อเพลิง\nexpectation|ความคาดหวัง\nemployment|การจ้างงาน\ncelebrate|ฉลอง\nsexual|ทางเพศ\nshoulder|ไหล่\nbreath|ลมหายใจ\nincreasingly|มากขึ้นเรื่อยๆ\nimport|นำเข้า\nbottle|ขวด\nourselves|ตัวพวกเราเอง\nsheet|แผ่น / ผ้าปูที่นอน\nengine|เครื่องยนต์\ncast|นักแสดง / เหวี่ยง\nnotion|ความคิด\nconservative|อนุรักษ์นิยม\njourney|การเดินทาง\nopposition|ฝ่ายค้าน\nrelief|ความโล่งใจ\ndebt|หนี้\nhonor|เกียรติ\noutcome|ผลลัพธ์\nblame|ตำหนิ / โทษ\nexplanation|คำอธิบาย\narise|เกิดขึ้น\nmusical|เกี่ยวกับดนตรี / ละครเพลง\nrecover|ฟื้นตัว\ndad|พ่อ\nstretch|ยืด\ndeclare|ประกาศ\nretire|เกษียณ\ntiny|เล็กมาก\ncareful|ระมัดระวัง\nsuitable|เหมาะสม\nnative|เจ้าของภาษา / พื้นเมือง\nfruit|ผลไม้\nanalyze|วิเคราะห์\nwitness|พยาน\nmail|จดหมาย / ไปรษณีย์\nterrible|แย่มาก\nresearcher|นักวิจัย\nordinary|ธรรมดา\nselection|การคัดเลือก\nanywhere|ที่ไหนก็ได้\nmental|ทางจิตใจ\nparticipant|ผู้เข้าร่วม\nvision|วิสัยทัศน์ / การมองเห็น\npersonality|บุคลิกภาพ\nspecifically|โดยเฉพาะ\nfat|อ้วน / ไขมัน\nentry|การเข้า / รายการ\nfellow|เพื่อน / ผู้ร่วม\nchemical|สารเคมี\ncapture|จับ / บันทึก\ntip|เคล็ดลับ / ทิป / ปลาย\ndiscount|ส่วนลด\npeak|ยอด / จุดสูงสุด\nchairman|ประธาน\nproportion|สัดส่วน\near|หู\ndisappear|หายไป\nshout|ตะโกน\nyard|สนามหญ้า / หลา\nconstant|คงที่\nsignificantly|อย่างมีนัยสำคัญ\nhill|เนินเขา\nconsiderable|มากพอสมควร\ninstruction|คำแนะนำ / คำสั่ง\nintelligence|สติปัญญา / ข่าวกรอง\nideal|อุดมคติ / เหมาะที่สุด\nfolk|ผู้คน / พื้นบ้าน\nsurely|แน่นอน\nguard|ยาม / เฝ้า\ncat|แมว\nsomewhat|ค่อนข้าง\nkiss|จูบ\npresentation|การนำเสนอ\njoint|ข้อต่อ / ร่วมกัน\ncompete|แข่งขัน\npoll|โพล / การสำรวจความเห็น\nweak|อ่อนแอ\nfaith|ศรัทธา\nreduction|การลดลง\nreserve|จอง / สำรอง\ncomplaint|การร้องเรียน\nbore|ทำให้เบื่อ\nmission|ภารกิจ\nsomehow|อย่างใดอย่างหนึ่ง\ntone|น้ำเสียง / โทน\nneighborhood|ละแวกบ้าน\npassenger|ผู้โดยสาร\njustice|ความยุติธรรม\nphase|ระยะ / ขั้น\nthin|ผอม / บาง\nrush|รีบเร่ง\nformal|เป็นทางการ\nreligion|ศาสนา\nemployer|นายจ้าง\nreject|ปฏิเสธ\nlatter|อย่างหลัง\nplate|จาน\nban|ห้าม\nsteal|ขโมย\nprotest|ประท้วง\nindex|ดัชนี\nsad|เศร้า\nfrequently|บ่อยๆ\ncircle|วงกลม\nhelpful|เป็นประโยชน์\ncommand|คำสั่ง\nattractive|น่าดึงดูด\nsick|ป่วย\nimpression|ความประทับใจ\nunable|ไม่สามารถ\njoke|เรื่องตลก / ล้อเล่น\nsky|ท้องฟ้า\ncolumn|คอลัมน์ / เสา\nelectronic|อิเล็กทรอนิกส์\nimpose|กำหนด / บังคับใช้\ncriminal|อาชญากร\nbesides|นอกจากนี้\nproperly|อย่างเหมาะสม\nancient|โบราณ\ncoast|ชายฝั่ง\nill|ป่วย\nkick|เตะ\nclosely|อย่างใกล้ชิด\nmultiple|หลาย\nyield|ผลผลิต / ยอมแพ้\nvia|ผ่านทาง\nlegislation|กฎหมาย\ncounty|เทศมณฑล\nunlike|ไม่เหมือน\nmobile|มือถือ / เคลื่อนที่ได้\nassistant|ผู้ช่วย\nimplement|นำไปใช้\nchart|แผนภูมิ\nattach|แนบ\nhell|นรก\neverywhere|ทุกที่\nadvise|แนะนำ\nhousehold|ครัวเรือน\nacknowledge|ยอมรับ\nreward|รางวัล\neast|ทิศตะวันออก\nhat|หมวก\nacademic|ทางวิชาการ\nvoter|ผู้ลงคะแนน\nmeanwhile|ในขณะเดียวกัน\nfurthermore|นอกจากนี้\naccuse|กล่าวหา\nscientific|ทางวิทยาศาสตร์\nwage|ค่าจ้าง\nabsence|การขาด / ไม่อยู่\nconstruct|ก่อสร้าง\nremark|ข้อสังเกต / กล่าว\nmedicine|ยา\nprofessor|ศาสตราจารย์\nrare|หายาก / สุกน้อย\nintention|ความตั้งใจ\ndozen|โหล\nsettlement|การตั้งถิ่นฐาน / การชำระ\ngap|ช่องว่าง\nwidely|อย่างกว้างขวาง\nminimum|ขั้นต่ำ\nnorthern|ทางเหนือ\nestate|ที่ดิน / มรดก\nequally|เท่าๆ กัน\nexpose|เปิดเผย / สัมผัส\nalive|มีชีวิตอยู่\nshut|ปิด\nvictory|ชัยชนะ\nresolve|แก้ไข / ตั้งใจ\ncritic|นักวิจารณ์\nvariable|ตัวแปร\nenormous|มหาศาล\nsweet|หวาน\npermanent|ถาวร\nemotion|อารมณ์\npursue|ติดตาม / มุ่งมั่น\ntall|สูง\nurge|กระตุ้น\nenemy|ศัตรู\nappoint|แต่งตั้ง\nmilk|นม\ntalent|พรสวรรค์\nsmell|กลิ่น / ดม\nprior|ก่อน\npriority|ลำดับความสำคัญ\nonline|ออนไลน์\nphrase|วลี\npilot|นักบิน / ทดลองนำร่อง\nstable|มั่นคง\nmerely|เพียงแค่\nresolution|มติ / ความละเอียด\ncommunicate|สื่อสาร\ninjury|การบาดเจ็บ\nvast|กว้างใหญ่\nexhibition|นิทรรศการ\nproducer|ผู้ผลิต\nregional|ระดับภูมิภาค\nimmediate|ทันที\nincident|เหตุการณ์\nchildhood|วัยเด็ก\ndraft|ร่าง\nslip|ลื่น\naccompany|ไปด้วย / ร่วมทาง\npolitician|นักการเมือง\nangry|โกรธ\nknock|เคาะ\nseed|เมล็ด\nsalary|เงินเดือน\nillustrate|แสดงภาพประกอบ\nimply|บอกเป็นนัย\nbreakfast|อาหารเช้า\ntemporary|ชั่วคราว\nliberal|เสรีนิยม\nlake|ทะเลสาบ\nqualify|มีคุณสมบัติ\ncompetitive|มีการแข่งขันสูง\ntruly|อย่างแท้จริง\nhi|สวัสดี\nyellow|สีเหลือง\nhabit|นิสัย / ความเคยชิน\ndisk|แผ่นดิสก์\ncore|แกนกลาง\nemotional|ทางอารมณ์\naircraft|เครื่องบิน\nself|ตัวเอง\nmetal|โลหะ\nexistence|การดำรงอยู่\nbone|กระดูก\npanel|แผง / คณะ\nprime|หลัก / ดีที่สุด\nappointment|การนัดหมาย\nemphasize|เน้น\nmaximum|สูงสุด\neffectively|อย่างมีประสิทธิภาพ\nelsewhere|ที่อื่น\nbother|รบกวน\ninitiative|ความริเริ่ม\nsharp|คม\ndiet|อาหาร / การควบคุมอาหาร\nmotion|การเคลื่อนไหว\ngray|สีเทา\nplastic|พลาสติก\ncomplicate|ทำให้ยุ่งยาก\ndiscipline|วินัย\ndisappoint|ทำให้ผิดหวัง\nboss|หัวหน้า / เจ้านาย\nassumption|ข้อสันนิษฐาน\nfreeze|แช่แข็ง\nextreme|สุดขีด\npassage|ทางเดิน / ข้อความ\nreputation|ชื่อเสียง\nforth|ไปข้างหน้า\nnegotiation|การเจรจา\nmechanism|กลไก\ncoat|เสื้อโค้ต\ndemocracy|ประชาธิปไตย\npocket|กระเป๋าเสื้อ/กางเกง\nlucky|โชคดี\ncrash|ชน / ล่ม\nobservation|การสังเกต\nmeat|เนื้อสัตว์\nconcentration|สมาธิ / ความเข้มข้น\nimplication|ผลที่ตามมา / นัย\ndeserve|สมควรได้รับ\nunusual|ผิดปกติ\ndefend|ปกป้อง\nclassic|คลาสสิก\nking|กษัตริย์\ninteraction|ปฏิสัมพันธ์\nrepair|ซ่อม\ncollapse|พังทลาย\nborrow|ยืม\nfundamental|พื้นฐาน\ndish|จาน / อาหาร\nabroad|ต่างประเทศ\nsoul|วิญญาณ\ncapable|มีความสามารถ\ndefeat|เอาชนะ / ความพ่ายแพ้\npresidential|ของประธานาธิบดี\nperfectly|อย่างสมบูรณ์แบบ\nenhance|เพิ่ม / ปรับปรุง\nproud|ภูมิใจ\nemergency|เหตุฉุกเฉิน\neducational|ทางการศึกษา\ndistinguish|แยกแยะ\nsubstantial|มาก / สำคัญ\nnearby|ใกล้เคียง\nmanufacturer|ผู้ผลิต\nslide|สไลด์ / ลื่นไถล\nvaluable|มีค่า\npersonally|โดยส่วนตัว\nbreast|หน้าอก\ncope|รับมือ\napproximately|ประมาณ\naccommodation|ที่พัก\nhighlight|ไฮไลต์ / เน้น\nreporter|ผู้สื่อข่าว\nclimate|ภูมิอากาศ\nshirt|เสื้อเชิ้ต\nexception|ข้อยกเว้น\ncorporation|บริษัทใหญ่\nchip|ชิป / มันฝรั่งทอด\nwinner|ผู้ชนะ\nencounter|พบเจอ\nbrown|สีน้ำตาล\nbreathe|หายใจ\nexcuse|ข้ออ้าง / ให้อภัย\npartly|บางส่วน\ntennis|เทนนิส\nurban|ในเมือง\nconfuse|ทำให้สับสน\nsouthern|ทางใต้\noutput|ผลผลิต\nbeauty|ความงาม\nmassive|ใหญ่มาก\ninstall|ติดตั้ง\ncalculate|คำนวณ\nmouse|หนู / เมาส์\nmathematics|คณิตศาสตร์\nupper|ด้านบน\ncreation|การสร้าง\noccupy|ครอบครอง\noutline|โครงร่าง\nsufficient|เพียงพอ\nupdate|อัปเดต\nluck|โชค\npreserve|รักษา / ถนอม\nsplit|แยก / แบ่ง\nswing|แกว่ง / ชิงช้า\nillness|ความเจ็บป่วย\njournalist|นักข่าว\nsudden|ฉับพลัน\nadvertisement|โฆษณา\nconsistent|สม่ำเสมอ\noriginally|แต่เดิม\naside|ไว้ข้างๆ\ncomfort|ความสบาย / ปลอบใจ\nsecondly|ประการที่สอง\nsevere|รุนแรง\ngene|ยีน\nprospect|โอกาส / ความหวัง\nsnow|หิมะ\nplot|โครงเรื่อง / แปลงที่ดิน\nneck|คอ\ncriterion|เกณฑ์\nprimarily|โดยหลัก\nintegrate|รวมเข้าด้วยกัน\ncriticism|คำวิจารณ์\nconvention|การประชุม / ธรรมเนียม\nbet|พนัน\nretain|รักษาไว้\nsequence|ลำดับ\nplain|เรียบ / ธรรมดา / ที่ราบ\nvolunteer|อาสาสมัคร\nrural|ชนบท\ncalm|สงบ\nabandon|ละทิ้ง\nexamination|การสอบ / การตรวจ\nsilence|ความเงียบ\nrapidly|อย่างรวดเร็ว\nefficient|มีประสิทธิภาพ\nrevolution|การปฏิวัติ\ndelight|ความยินดี\nspell|สะกด / คาถา\npremise|หลักฐาน / สถานที่\nlean|พิง / ผอม\ndramatic|น่าตื่นเต้น / อย่างมาก\ndiffer|แตกต่าง\ngrateful|ขอบคุณ / ซาบซึ้ง\nprotein|โปรตีน\nbike|จักรยาน\ndistribute|แจกจ่าย\nintellectual|ทางปัญญา\nderive|ได้มาจาก\ncrucial|สำคัญมาก\nunemployment|การว่างงาน\nwheel|ล้อ\ncrop|พืชผล\nminority|ชนกลุ่มน้อย\norigin|ต้นกำเนิด\ninterpretation|การตีความ\ngentleman|สุภาพบุรุษ\ndrama|ละคร\nlandscape|ภูมิทัศน์\neducate|ให้การศึกษา\ntoy|ของเล่น\nfault|ความผิด\nexhibit|จัดแสดง\nminor|เล็กน้อย / ผู้เยาว์\nhunt|ล่า\nstorm|พายุ\nthick|หนา\nachievement|ความสำเร็จ\nnegotiate|เจรจา\ndominate|ครอบงำ / ครองตลาด\nsupplier|ผู้จัดหาสินค้า\nprize|รางวัล\ntypically|โดยทั่วไป\npeer|เพื่อนรุ่นเดียวกัน\npension|เงินบำนาญ\nwing|ปีก\nacquisition|การได้มา / การซื้อกิจการ\nlaughter|เสียงหัวเราะ\ndeeply|อย่างลึกซึ้ง\nrecognition|การยอมรับ\nelectricity|ไฟฟ้า\nassistance|ความช่วยเหลือ\nroof|หลังคา\nretirement|การเกษียณ\nrespectively|ตามลำดับ\nvariation|ความแตกต่าง\nultimately|ในที่สุด\nproof|หลักฐาน\nsoil|ดิน\nsmart|ฉลาด\nlayer|ชั้น\nupset|ไม่พอใจ / เสียใจ\ntooth|ฟัน\nrepresentation|การเป็นตัวแทน\npreparation|การเตรียมการ\ndispute|ข้อพิพาท\nagenda|วาระการประชุม\nemphasis|การเน้น\nedition|ฉบับ\nsilver|เงิน (โลหะ) / สีเงิน\nentertainment|ความบันเทิง\nhonest|ซื่อสัตย์\nundertake|รับทำ\nretail|ขายปลีก\nwire|สายไฟ\nunlikely|ไม่น่าจะ\ngay|เกย์ / ร่าเริง\npublication|การตีพิมพ์\nslight|เล็กน้อย\nunknown|ไม่รู้จัก\nframework|กรอบงาน\nzone|โซน / เขต\nrestrict|จำกัด\ntrace|ร่องรอย / ติดตาม\ninch|นิ้ว\nequivalent|เทียบเท่า\nsolid|ของแข็ง / มั่นคง\nenterprise|องค์กรธุรกิจ\nelderly|ผู้สูงอายุ\nowe|เป็นหนี้\ngovernor|ผู้ว่าการ\nuniform|เครื่องแบบ\nport|ท่าเรือ\npitch|สนาม / ระดับเสียง / นำเสนอ\narrival|การมาถึง\ncontemporary|ร่วมสมัย\ngate|ประตูรั้ว\nease|ความง่าย / บรรเทา\nbeer|เบียร์\nspecialist|ผู้เชี่ยวชาญ\nassure|รับรอง\nprofile|โปรไฟล์ / ประวัติ\nmood|อารมณ์\nepisode|ตอน\ncrack|รอยแตก\nnumerous|มากมาย\nsubmit|ส่ง (งาน)\nsymptom|อาการ\nvirtually|แทบจะ\nera|ยุค\ncoverage|การรายงานข่าว / ความครอบคลุม\ntension|ความตึงเครียด\ncable|สายเคเบิล\nsensitive|อ่อนไหว\nnervous|ประหม่า\ninput|ข้อมูลเข้า / ความคิดเห็น\nisolate|แยกออก\nprisoner|นักโทษ\neliminate|กำจัด\ntight|แน่น / คับ\nwet|เปียก\nsecondary|รอง / มัธยม\nwelfare|สวัสดิการ\nrecruit|รับสมัคร\nexclude|ไม่รวม\nstring|เชือก / สาย\ncloud|เมฆ\npersuade|ชักชวน\ninspire|สร้างแรงบันดาลใจ\ngrand|ยิ่งใหญ่\nhence|ดังนั้น\ncrew|ลูกเรือ / ทีมงาน\nphenomenon|ปรากฏการณ์\npupil|นักเรียน / รูม่านตา\nfalse|เท็จ\nassist|ช่วยเหลือ\nrestore|ฟื้นฟู\nformula|สูตร\nalter|เปลี่ยนแปลง\nperceive|รับรู้\nroutine|กิจวัตร\nsink|อ่างล้างจาน / จม\nstare|จ้องมอง\nanymore|อีกต่อไป\nhero|ฮีโร่\nsupporter|ผู้สนับสนุน\nconvert|แปลง\nsteady|มั่นคง\nmeter|เมตร / มิเตอร์\ntruck|รถบรรทุก\nnose|จมูก\nbeside|ข้างๆ\nsail|แล่นเรือ\ndisaster|ภัยพิบัติ\npace|ความเร็ว / จังหวะ\nheavily|อย่างหนัก\ndevote|อุทิศ\nterrorist|ผู้ก่อการร้าย\njustify|ให้เหตุผล\nvital|สำคัญมาก\nfascinate|ทำให้หลงใหล\nexternal|ภายนอก\nspare|สำรอง / ว่าง\nwhenever|เมื่อไรก็ตาม\ndepression|ภาวะซึมเศร้า / เศรษฐกิจตกต่ำ\nguilty|มีความผิด / รู้สึกผิด\nunderlie|เป็นพื้นฐาน\nmom|แม่\ndistinction|ความแตกต่าง / เกียรตินิยม\nsatisfaction|ความพึงพอใจ\nincorporate|รวมเข้า\npour|เท\nsweep|กวาด\nobligation|ภาระผูกพัน\nsir|ท่าน (สุภาพ)\nevaluate|ประเมิน\nanger|ความโกรธ\npub|ผับ\nperception|การรับรู้\nnaturally|โดยธรรมชาติ\ncurrency|สกุลเงิน\ndatabase|ฐานข้อมูล\ninitially|ในตอนแรก\nterritory|อาณาเขต\nstream|ลำธาร / สตรีม\nrarely|ไม่ค่อย\nheight|ความสูง\napparent|ชัดเจน\nwestern|ตะวันตก\nexpansion|การขยาย\nconstantly|อยู่ตลอด\nmuscle|กล้ามเนื้อ\nscare|ทำให้กลัว\nbadly|อย่างแย่\neveryday|ทุกวัน / ประจำวัน\nboundary|ขอบเขต\nratio|อัตราส่วน\nessay|เรียงความ\nscream|กรีดร้อง\nwithdraw|ถอน\npollution|มลพิษ\ndisorder|ความผิดปกติ\nfurniture|เฟอร์นิเจอร์\nsymbol|สัญลักษณ์\napartment|อพาร์ตเมนต์\ndemonstration|การสาธิต / การชุมนุม\nanalyst|นักวิเคราะห์\nplatform|ชานชาลา / แพลตฟอร์ม\nsteel|เหล็กกล้า\ncake|เค้ก\ntransform|เปลี่ยนรูป\nwound|บาดแผล\nrestriction|ข้อจำกัด\nfoundation|มูลนิธิ / ฐานราก\ndesigner|นักออกแบบ\nstrain|ความตึง / แรงกดดัน\ninnovation|นวัตกรรม\nalbum|อัลบั้ม\nsinger|นักร้อง\ntrail|เส้นทาง / ร่องรอย\ntrap|กับดัก\nloose|หลวม\nextension|การขยาย / เบอร์ต่อ\nwealth|ความมั่งคั่ง\ngradually|ทีละน้อย\ntank|ถัง / รถถัง\nevil|ชั่วร้าย\nremarkable|น่าทึ่ง\ntune|ทำนอง / ปรับ\ngrass|หญ้า\ninvitation|คำเชิญ\ntransition|การเปลี่ยนผ่าน\nfrighten|ทำให้ตกใจ\nbid|ประมูล\nbreed|สายพันธุ์ / เพาะพันธุ์\nextraordinary|พิเศษ / ไม่ธรรมดา\nbrilliant|ยอดเยี่ยม / ฉลาดมาก\nadviser|ที่ปรึกษา\nstem|ลำต้น / เกิดจาก\nreverse|ย้อนกลับ\nmode|โหมด\nmirror|กระจกเงา\nawful|แย่มาก\npose|โพสท่า / ก่อให้เกิด\nadjust|ปรับ\ncreative|สร้างสรรค์\nnowadays|ทุกวันนี้\npoem|บทกวี\nagricultural|ทางการเกษตร\ncompetitor|คู่แข่ง\nalcohol|แอลกอฮอล์\nfestival|เทศกาล\nvegetable|ผัก\nvan|รถตู้\nconfident|มั่นใจ\nplanet|ดาวเคราะห์\ncurve|เส้นโค้ง\nknee|เข่า\novercome|เอาชนะ\nweb|เว็บ / ใยแมงมุม\ndepth|ความลึก\nentrance|ทางเข้า\nlog|ท่อนไม้ / บันทึก\ngiant|ยักษ์\ngod|พระเจ้า\nportion|ส่วน\nsubstance|สาร\nextensive|กว้างขวาง\ninterpret|ตีความ / แปล\nindependence|อิสรภาพ\nsugar|น้ำตาล\ninner|ภายใน\nharm|อันตราย / ทำร้าย\nconsult|ปรึกษา\npink|สีชมพู\nshadow|เงา\nstrip|แถบ\nsmooth|เรียบ\nintervention|การแทรกแซง\nimpress|ทำให้ประทับใจ\nexam|การสอบ\nvice|รอง (ตำแหน่ง)\nradical|รุนแรง / หัวรุนแรง\nsimilarly|ในทำนองเดียวกัน\nbehave|ประพฤติ\nloud|ดัง\ndimension|มิติ\nsubsequent|ต่อมา\ninfection|การติดเชื้อ\njacket|เสื้อแจ็กเก็ต\nefficiency|ประสิทธิภาพ\ndirty|สกปรก\nstatistic|สถิติ\nregularly|อย่างสม่ำเสมอ\nresort|รีสอร์ต\niron|เหล็ก / เตารีด\nbroadcast|ออกอากาศ\nmembership|การเป็นสมาชิก\nbread|ขนมปัง\nblind|ตาบอด / ม่าน\npure|บริสุทธิ์\nbloody|เปื้อนเลือด\nally|พันธมิตร\nquantity|ปริมาณ\nbend|งอ / โค้ง\nmature|เป็นผู้ใหญ่\nbriefly|อย่างย่อ\nalarm|สัญญาณเตือน\ndisturb|รบกวน\nsustain|ทำให้คงอยู่\nflood|น้ำท่วม\npoverty|ความยากจน\ncrazy|บ้า\ncite|อ้างอิง\nnewly|ใหม่ๆ\nparallel|ขนาน\ngender|เพศ\nsponsor|ผู้สนับสนุน\nboot|รองเท้าบูท / เปิดเครื่อง\naccurate|แม่นยำ\ndealer|ตัวแทนจำหน่าย\nbutton|กระดุม / ปุ่ม\nburden|ภาระ\ndesert|ทะเลทราย\nmate|เพื่อน\noccasionally|บางครั้ง\nshareholder|ผู้ถือหุ้น\nbowl|ชาม\ndiscovery|การค้นพบ\nresistance|การต่อต้าน\nbath|อ่างอาบน้ำ / การอาบน้ำ\nfrequency|ความถี่\ncriticize|วิจารณ์\ntap|ก๊อกน้ำ / แตะ\nphilosophy|ปรัชญา\nlip|ริมฝีปาก\nattribute|คุณลักษณะ\napologize|ขอโทษ\napproval|การอนุมัติ\ngrab|คว้า\nentitle|ให้สิทธิ์\nlend|ให้ยืม\ninvolvement|การมีส่วนร่วม\nexposure|การเปิดรับ / การสัมผัส\nconventional|แบบดั้งเดิม\ndigital|ดิจิทัล\ntranslate|แปล\nedit|แก้ไข\nformation|การก่อตัว\ndeposit|เงินฝาก / มัดจำ\npleasant|น่ารื่นรมย์\noverseas|ต่างประเทศ\nadvocate|ผู้สนับสนุน / สนับสนุน\nestablishment|สถานประกอบการ\nsummary|สรุป\nrough|หยาบ\npen|ปากกา\nrecovery|การฟื้นตัว\nseal|ผนึก / แมวน้ำ\ntube|หลอด\ntower|หอคอย\ncharacterize|เป็นลักษณะ\nspecify|ระบุ\nexact|แน่นอน / ตรง\nspin|หมุน\noperator|ผู้ควบคุม / โอเปอเรเตอร์\ninfant|ทารก\ndig|ขุด\ndrag|ลาก\nmount|ขึ้น / ติดตั้ง\nwrap|ห่อ\nanticipate|คาดการณ์\ndependent|พึ่งพา\nspecialize|เชี่ยวชาญ\nangle|มุม\nchicken|ไก่\nanxiety|ความวิตกกังวล\nvirus|ไวรัส\nprecisely|อย่างแม่นยำ\nrival|คู่แข่ง\noffense|ความผิด / การรุก\ndetect|ตรวจจับ\nteenager|วัยรุ่น\nadmire|ชื่นชม\nmoderate|ปานกลาง\nsurgery|การผ่าตัด\nmusician|นักดนตรี\nsignificance|ความสำคัญ\nshower|ฝักบัว / อาบน้ำ\nillegal|ผิดกฎหมาย\ncharity|การกุศล\nuniversal|สากล\ncigarette|บุหรี่\nconstitute|ประกอบขึ้น\nadequate|เพียงพอ\nconsultant|ที่ปรึกษา\nhistorian|นักประวัติศาสตร์\ncousin|ลูกพี่ลูกน้อง\nvisual|ทางสายตา\nstupid|โง่\nkeen|กระตือรือร้น\nethnic|ชาติพันธุ์\ntwin|ฝาแฝด\nclinical|ทางคลินิก\neastern|ตะวันออก\nforecast|พยากรณ์\nsegment|ส่วน\ncustom|ประเพณี / ศุลกากร (customs)\nadapt|ปรับตัว\nsand|ทราย\ncap|หมวกแก๊ป / ฝา\nprompt|ทันที / กระตุ้น\ncharm|เสน่ห์\nreact|ตอบสนอง\nlecture|การบรรยาย\nventure|กิจการเสี่ยง\ncompound|สารประกอบ\nrescue|ช่วยชีวิต\nmess|ความยุ่งเหยิง\npreference|ความชอบ\ncomprehensive|ครอบคลุม\nincentive|สิ่งจูงใจ\nleague|ลีก\ndialog|บทสนทนา\ncream|ครีม\nrapid|รวดเร็ว\ncancel|ยกเลิก\nregret|เสียใจ\ndismiss|ไล่ออก / ปัดตก\nmargin|ขอบ / กำไรส่วนต่าง\nbeneath|ใต้\nopponent|คู่ต่อสู้\nresist|ต่อต้าน\ncapability|ความสามารถ\nabsolute|สมบูรณ์\ncorrespond|สอดคล้อง\nstroke|โรคหลอดเลือดสมอง / ลูบ\ndare|กล้า\nbarrier|อุปสรรค\nrid|กำจัด (get rid of)\ndivorce|หย่า\nruin|ทำลาย / ซากปรักหักพัง\nbury|ฝัง\ncounsel|ให้คำปรึกษา\ntendency|แนวโน้ม\nfrequent|บ่อย\nmotor|มอเตอร์\nsurvival|การอยู่รอด\ncounter|เคาน์เตอร์ / ตอบโต้\npossess|ครอบครอง\npermission|การอนุญาต\nvalley|หุบเขา\nfloat|ลอย\nmad|บ้า / โกรธ\ngreatly|อย่างมาก\nvisible|มองเห็นได้\nelectric|ไฟฟ้า\nimpressive|น่าประทับใจ\nevolution|วิวัฒนาการ\nawareness|การตระหนักรู้\nviolent|รุนแรง\nslave|ทาส\nwealthy|ร่ำรวย\narchitecture|สถาปัตยกรรม\nacceptable|ยอมรับได้\njournal|วารสาร / บันทึก\ncoal|ถ่านหิน\nmeasurement|การวัด\nrandom|สุ่ม\nsuccessfully|อย่างประสบความสำเร็จ\ndepress|ทำให้หดหู่\nillustration|ภาพประกอบ\nburst|ระเบิด / แตก\nprivilege|สิทธิพิเศษ\nbuyer|ผู้ซื้อ\nmutual|ซึ่งกันและกัน\nrail|ราง\nmotivate|จูงใจ\nlaboratory|ห้องปฏิบัติการ\nmortgage|สินเชื่อบ้าน / จำนอง\npromotion|การเลื่อนตำแหน่ง / โปรโมชัน\npassion|ความหลงใหล\nchampion|แชมป์\nfulfill|ทำให้สำเร็จ\ndust|ฝุ่น\ndedicate|อุทิศ\nroughly|โดยประมาณ\nskirt|กระโปรง\nprovince|จังหวัด\nmarch|เดินขบวน / เดือนมีนาคม (March)\nevaluation|การประเมินผล\ncompromise|ประนีประนอม\naccomplish|ทำให้สำเร็จ\nweakness|จุดอ่อน\nannouncement|ประกาศ\nsalt|เกลือ\nglance|ชำเลืองมอง\nopera|โอเปร่า\ncontest|การประกวด\nbrush|แปรง\nembarrass|ทำให้อาย\ngallery|หอศิลป์\ngenetic|ทางพันธุกรรม\naggressive|ก้าวร้าว\nchest|หน้าอก / หีบ\nformat|รูปแบบ\nliterary|ทางวรรณกรรม\ngovern|ปกครอง\nembrace|โอบกอด / ยอมรับ\npraise|ชมเชย\nsilent|เงียบ\npump|ปั๊ม\npublisher|สำนักพิมพ์\ncelebration|การเฉลิมฉลอง\ngolf|กอล์ฟ\ncompensation|ค่าชดเชย\nclassical|คลาสสิก\nweigh|ชั่งน้ำหนัก\nversus|ปะทะ / เทียบกับ\ndeficit|การขาดดุล\nmodify|ปรับเปลี่ยน\nflash|แฟลช / วาบ\nfriendship|มิตรภาพ\nprofession|อาชีพ\nliterally|ตามตัวอักษร\nequation|สมการ\ngesture|ท่าทาง\nentertain|ให้ความบันเทิง\nfantastic|ยอดเยี่ยม\nassign|มอบหมาย\ninflation|เงินเฟ้อ\nhistoric|ทางประวัติศาสตร์\ninjure|ทำให้บาดเจ็บ\nremote|ห่างไกล / รีโมต\ntherapy|การบำบัด\norange|ส้ม / สีส้ม\ntwist|บิด\npersonnel|บุคลากร\nimagination|จินตนาการ\ndisagree|ไม่เห็นด้วย\nthroat|คอ (ลำคอ)\ninsight|ความเข้าใจลึกซึ้ง\ntackle|จัดการ / แท็กเกิล\nforever|ตลอดไป\nexceed|เกิน\nexpenditure|รายจ่าย\njoy|ความสุข\npregnant|ตั้งครรภ์\nreliable|เชื่อถือได้\ngear|เกียร์ / อุปกรณ์\npoet|กวี\nfortune|โชคลาภ\nceremony|พิธี\npile|กอง\npig|หมู\nmixture|ส่วนผสม\nautomatically|โดยอัตโนมัติ\nscholar|นักวิชาการ\npsychological|ทางจิตวิทยา\ndramatically|อย่างมาก\nstake|ส่วนได้ส่วนเสีย / เดิมพัน\ncreature|สิ่งมีชีวิต\npartnership|ห้างหุ้นส่วน / ความร่วมมือ\nparticipation|การมีส่วนร่วม\nclause|ข้อ (สัญญา) / อนุประโยค\npenalty|บทลงโทษ / จุดโทษ\nchamber|ห้อง / สภา\nfancy|หรูหรา / ชอบ\npoetry|บทกวี\nchat|คุยเล่น / แชท\nclothing|เสื้อผ้า\nevolve|วิวัฒน์\nsake|เพื่อประโยชน์ของ\nshelf|ชั้นวาง\nboost|เพิ่ม / กระตุ้น\ntail|หาง\npossession|ทรัพย์สิน / การครอบครอง\nabortion|การทำแท้ง\ncurious|อยากรู้อยากเห็น\nwooden|ทำจากไม้\nboom|เฟื่องฟู / เสียงดังบูม\ntale|นิทาน\ndemocratic|ประชาธิปไตย\nmaintenance|การบำรุงรักษา\nconsequently|ดังนั้น\npot|หม้อ / กระถาง\ncow|วัว\nstrengthen|ทำให้แข็งแรง\nwhilst|ขณะที่\nconstraint|ข้อจำกัด\nfold|พับ\nbin|ถังขยะ\nundergo|ผ่าน / ได้รับ\npotentially|อาจจะ\nscope|ขอบเขต\npretend|แกล้งทำ\ndiversity|ความหลากหลาย\nallege|กล่าวหา\npride|ความภาคภูมิใจ\nintense|เข้มข้น / รุนแรง\ninquiry|การสอบถาม\nresign|ลาออก\ncraft|งานฝีมือ\nstrict|เข้มงวด\nconcrete|คอนกรีต / เป็นรูปธรรม\nshell|เปลือก\ndamn|ให้ตายสิ (คำสบถ)\ndistinct|แตกต่างชัดเจน\nhumor|อารมณ์ขัน\nlimitation|ข้อจำกัด\nindication|สัญญาณบ่งชี้\nstability|ความมั่นคง\nwise|ฉลาด / มีปัญญา\nneglect|ละเลย\ncompose|แต่ง (เพลง) / ประกอบ\njail|คุก\nshelter|ที่พักพิง\nmere|เพียง\ncarbon|คาร์บอน\nregulate|ควบคุม\ncheese|ชีส\ntrigger|ไกปืน / กระตุ้น\npipe|ท่อ\ndestruction|การทำลาย\nguitar|กีตาร์\nflag|ธง\npiano|เปียโน\nmagic|เวทมนตร์ / มายากล\nmystery|ความลึกลับ\nski|สกี\nwhisper|กระซิบ\nrear|ด้านหลัง\nmenu|เมนู\nspecies|สายพันธุ์\nmoon|ดวงจันทร์\npresumably|น่าจะ\nbless|อวยพร\nairline|สายการบิน\namendment|การแก้ไข\ngrandmother|ยาย / ย่า\njury|คณะลูกขุน\ncooperation|ความร่วมมือ\ncivilian|พลเรือน\ncomposition|องค์ประกอบ / เรียงความ\ncoin|เหรียญ\nregardless|ไม่ว่าอย่างไร\nscan|สแกน\nbunch|พวง / กลุ่ม\nracial|ทางเชื้อชาติ\ngreet|ทักทาย\nhopefully|หวังว่า\nsanction|มาตรการลงโทษ\ntrick|กลอุบาย / เคล็ดลับ\nparagraph|ย่อหน้า\nmaker|ผู้ทำ\nchocolate|ช็อกโกแลต\nstimulate|กระตุ้น\nbelt|เข็มขัด\npotato|มันฝรั่ง\nnarrative|การเล่าเรื่อง\ntissue|กระดาษทิชชู / เนื้อเยื่อ\nbarely|แทบจะไม่\ninvent|ประดิษฐ์\ntourism|การท่องเที่ยว\npro|มืออาชีพ / ข้อดี\nstair|บันได\nhesitate|ลังเล\nshine|ส่องแสง\nmotivation|แรงจูงใจ\nromantic|โรแมนติก\nfirmly|อย่างมั่นคง\ninterior|ภายใน\nstomach|ท้อง / กระเพาะ\nnowhere|ไม่มีที่ไหน\npray|สวดมนต์\nchampionship|การแข่งขันชิงแชมป์\nservant|คนรับใช้\nimmigrant|ผู้อพยพ\nexcess|ส่วนเกิน\ncomplexity|ความซับซ้อน\nliability|หนี้สิน / ความรับผิด\nsurprisingly|อย่างน่าประหลาดใจ\nextract|สกัด / ดึงออก\nimplementation|การนำไปใช้\nbias|อคติ\ndifferently|อย่างแตกต่าง\ncatalog|แคตตาล็อก\ncontinuous|ต่อเนื่อง\ngolden|สีทอง / ทอง\nstamp|แสตมป์ / ตราประทับ\nguideline|แนวทาง\nenvelope|ซองจดหมาย\nknife|มีด\nbiological|ทางชีววิทยา\nconsume|บริโภค\nluxury|ความหรูหรา\nweekly|รายสัปดาห์\nwherever|ที่ไหนก็ตาม\nbite|กัด\nprinter|เครื่องพิมพ์\nfirstly|ประการแรก\nanxious|กังวล\nadventure|การผจญภัย\nfence|รั้ว\nexhaust|ทำให้หมดแรง / ท่อไอเสีย\nattraction|สถานที่ท่องเที่ยว / แรงดึงดูด\nocean|มหาสมุทร\nquietly|อย่างเงียบๆ\ncastle|ปราสาท\nveteran|ทหารผ่านศึก / ผู้มีประสบการณ์\nreflection|เงาสะท้อน / การไตร่ตรอง\nnerve|เส้นประสาท / ความกล้า\ndetermination|ความมุ่งมั่น\naltogether|ทั้งหมด\nfiction|นิยาย\ncarpet|พรม\ncluster|กลุ่ม\nconfusion|ความสับสน\nhurry|รีบ\nlogic|ตรรกะ\ncontroversial|เป็นที่ถกเถียง\nraw|ดิบ\ngrammar|ไวยากรณ์\nrevise|ทบทวน / แก้ไข\nhint|คำใบ้\nhook|ตะขอ\nbell|กระดิ่ง\nliquid|ของเหลว\npanic|ตื่นตระหนก\nuncle|ลุง / น้า / อา (ชาย)\nrice|ข้าว\nslope|ทางลาด\nhappiness|ความสุข\ngenuine|แท้\nvessel|เรือ / ภาชนะ\nverb|คำกริยา\nreckon|คิดว่า\nsilly|โง่ / ไร้สาระ\ntransportation|การขนส่ง\nharbor|ท่าเรือ\ncomedy|ตลก\nchase|ไล่ตาม\nstorage|ที่เก็บ\nuniverse|จักรวาล\nhorrible|น่ากลัว / แย่มาก\nsheep|แกะ\nlover|คนรัก\nrat|หนู\nportrait|ภาพเหมือน\ninnocent|บริสุทธิ์\nsubstitute|ตัวแทน / แทนที่\nsupplement|อาหารเสริม / ส่วนเสริม\nadjustment|การปรับ\nreasonably|อย่างสมเหตุสมผล\nfilter|ตัวกรอง\nflexible|ยืดหยุ่น\nabstract|นามธรรม / บทคัดย่อ\ntent|เต็นท์\nprecise|แม่นยำ\ndistant|ห่างไกล\nstranger|คนแปลกหน้า\nshade|ร่มเงา\ngrain|เมล็ดพืช\nsituate|ตั้งอยู่\nsummarize|สรุป\nleap|กระโดด\nsnap|หักดังเป๊าะ / ถ่ายรูป\nprobability|ความน่าจะเป็น\nleather|หนัง (วัสดุ)\nuncertainty|ความไม่แน่นอน\nswear|สาบาน / สบถ\nrefugee|ผู้ลี้ภัย\nshore|ชายฝั่ง\nmonthly|รายเดือน\ncomprise|ประกอบด้วย\nstir|คน (อาหาร)\nexcitement|ความตื่นเต้น\nsigh|ถอนหายใจ\npregnancy|การตั้งครรภ์\nexperimental|ทดลอง\ninstitutional|ของสถาบัน\nslice|ชิ้น / หั่น\nwander|เดินเตร่\nempire|จักรวรรดิ\nsubsequently|ต่อมา\ngentle|อ่อนโยน\nattendance|การเข้าร่วม\nownership|ความเป็นเจ้าของ\nqualification|คุณสมบัติ\nsuspend|ระงับ / แขวน\nfunctional|ใช้งานได้\nvoluntary|โดยสมัครใจ\npale|ซีด\nstain|คราบ\nathlete|นักกีฬา\norganic|ออร์แกนิก\ntongue|ลิ้น\nserver|เซิร์ฟเวอร์ / พนักงานเสิร์ฟ\nstructural|ทางโครงสร้าง\nfool|คนโง่ / หลอก\nalongside|ข้างๆ / ควบคู่\nunite|รวมกัน\ngently|อย่างนุ่มนวล\ncompute|คำนวณ\nwipe|เช็ด\nweird|แปลก\ngaze|จ้องมอง\nfade|จางลง\ncough|ไอ\nhypothesis|สมมติฐาน\nroyal|ราชวงศ์\ntheoretical|ทางทฤษฎี\ncurtain|ผ้าม่าน\nmayor|นายกเทศมนตรี\ndarkness|ความมืด\naunt|ป้า / น้า / อา (หญิง)\ntournament|การแข่งขัน (ทัวร์นาเมนต์)\nregistration|การลงทะเบียน\nfragment|ชิ้นส่วน\nlistener|ผู้ฟัง\ntender|นุ่ม / อ่อนโยน\ndensity|ความหนาแน่น\nugly|น่าเกลียด\nmodule|โมดูล / หน่วย\nfaithfully|อย่างซื่อสัตย์\nautumn|ฤดูใบไม้ร่วง\ncheek|แก้ม\nattachment|ไฟล์แนบ / ความผูกพัน\nholder|ผู้ถือ\ngrin|ยิ้มกว้าง\nnoun|คำนาม\nfortunate|โชคดี\nalright|โอเค / ไม่เป็นไร\nlazy|ขี้เกียจ\nhello|สวัสดี\nhunger|ความหิว\ninsure|ทำประกัน\nashamed|ละอาย\nfound|ก่อตั้ง\nthirst|ความกระหาย\ntwo|สอง\nthree|สาม\nfour|สี่\nfive|ห้า\nmillion|ล้าน\nsix|หก\nhundred|ร้อย\nten|สิบ\nthousand|พัน\nseven|เจ็ด\neight|แปด\nnine|เก้า\nbillion|พันล้าน\ntwenty|ยี่สิบ\nthirty|สามสิบ\nfifty|ห้าสิบ\ntwelve|สิบสอง\nfifteen|สิบห้า\nnineteen|สิบเก้า\nforty|สี่สิบ\nzero|ศูนย์\neighteen|สิบแปด\neleven|สิบเอ็ด\nsixteen|สิบหก\nsixty|หกสิบ\nfourteen|สิบสี่\neighty|แปดสิบ\nseventy|เจ็ดสิบ\nseventeen|สิบเจ็ด\nthirteen|สิบสาม\nninety|เก้าสิบ\ntrillion|ล้านล้าน\nAugust|เดือนสิงหาคม\nJuly|เดือนกรกฎาคม\nMonday|วันจันทร์\nOctober|เดือนตุลาคม\nFebruary|เดือนกุมภาพันธ์\nJanuary|เดือนมกราคม\nJune|เดือนมิถุนายน\nFriday|วันศุกร์\nSaturday|วันเสาร์\nSunday|วันอาทิตย์\nWednesday|วันพุธ\nThursday|วันพฤหัสบดี\nApril|เดือนเมษายน\nDecember|เดือนธันวาคม\nNovember|เดือนพฤศจิกายน";
+const NGSL=NGSL_RAW.split("\n").map(l=>{const i=l.indexOf("|");return [l.slice(0,i),l.slice(i+1),""]});
+const NGSL_PACKS=[];for(let i=0;i<NGSL.length;i+=100){const n=i/100+1;NGSL_PACKS.push({id:"n"+n,aud:"all",title:`ชุดที่ ${n}`,en:`คำที่ ${i+1}–${Math.min(i+100,NGSL.length)}`,icon:String(n),num:true,words:NGSL.slice(i,i+100)})}
+
+/* ================= vocabulary course ================= */
+const VOCAB=[
+ {id:"v1",aud:"all",title:"คำสุภาพและทักทาย",en:"Polite words",icon:"👋",words:[["hello","สวัสดี","👋"],["goodbye","ลาก่อน","🙋"],["please","กรุณา / โปรด","🙏"],["thank you","ขอบคุณ","💐"],["sorry","ขอโทษ","😔"],["excuse me","ขอโทษนะ (ขอทาง/เรียก)","🙋‍♀️"],["welcome","ยินดีต้อนรับ","🤗"],["yes","ใช่","✅"],["no","ไม่","❌"],["okay","ตกลง","👌"],["good","ดี","👍"],["bad","ไม่ดี","👎"]]},
+ {id:"v2",aud:"all",title:"ตัวเลข 1–20",en:"Numbers",icon:"🔢",words:[["one","หนึ่ง","1️⃣"],["two","สอง","2️⃣"],["three","สาม","3️⃣"],["four","สี่","4️⃣"],["five","ห้า","5️⃣"],["six","หก","6️⃣"],["seven","เจ็ด","7️⃣"],["eight","แปด","8️⃣"],["nine","เก้า","9️⃣"],["ten","สิบ","🔟"],["eleven","สิบเอ็ด","🕚"],["twelve","สิบสอง","🕛"],["fifteen","สิบห้า","🕒"],["twenty","ยี่สิบ","💯"]]},
+ {id:"v3",aud:"all",title:"สี",en:"Colors",icon:"🎨",words:[["red","สีแดง","🟥"],["blue","สีน้ำเงิน","🟦"],["green","สีเขียว","🟩"],["yellow","สีเหลือง","🟨"],["orange","สีส้ม","🟧"],["purple","สีม่วง","🟪"],["pink","สีชมพู","🩷"],["black","สีดำ","⬛"],["white","สีขาว","⬜"],["brown","สีน้ำตาล","🟫"],["gray","สีเทา","🩶"],["gold","สีทอง","🥇"]]},
+ {id:"v4",aud:"all",title:"สัตว์",en:"Animals",icon:"🐾",words:[["cat","แมว","🐱"],["dog","หมา","🐶"],["bird","นก","🐦"],["fish","ปลา","🐟"],["elephant","ช้าง","🐘"],["rabbit","กระต่าย","🐰"],["cow","วัว","🐄"],["pig","หมู","🐷"],["chicken","ไก่","🐔"],["duck","เป็ด","🦆"],["horse","ม้า","🐴"],["monkey","ลิง","🐒"],["tiger","เสือ","🐯"],["snake","งู","🐍"]]},
+ {id:"v5",aud:"all",title:"ผลไม้",en:"Fruits",icon:"🍎",words:[["apple","แอปเปิล","🍎"],["banana","กล้วย","🍌"],["orange","ส้ม","🍊"],["mango","มะม่วง","🥭"],["grape","องุ่น","🍇"],["watermelon","แตงโม","🍉"],["pineapple","สับปะรด","🍍"],["strawberry","สตรอว์เบอร์รี","🍓"],["durian","ทุเรียน","🌰"],["coconut","มะพร้าว","🥥"],["papaya","มะละกอ","🍈"],["lemon","มะนาว","🍋"]]},
+ {id:"v6",aud:"all",title:"อาหารและเครื่องดื่ม",en:"Food & drinks",icon:"🍜",words:[["rice","ข้าว","🍚"],["noodles","ก๋วยเตี๋ยว","🍜"],["egg","ไข่","🥚"],["bread","ขนมปัง","🍞"],["soup","ซุป","🍲"],["pork","เนื้อหมู","🥓"],["beef","เนื้อวัว","🥩"],["vegetable","ผัก","🥦"],["milk","นม","🥛"],["water","น้ำ","💧"],["juice","น้ำผลไม้","🧃"],["coffee","กาแฟ","☕"],["tea","ชา","🍵"],["sugar","น้ำตาล","🍬"]]},
+ {id:"v7",aud:"all",title:"ร่างกาย",en:"Body",icon:"🧍",words:[["head","หัว","🙆"],["hair","ผม","💇"],["eye","ตา","👁️"],["ear","หู","👂"],["nose","จมูก","👃"],["mouth","ปาก","👄"],["teeth","ฟัน","🦷"],["hand","มือ","✋"],["arm","แขน","💪"],["leg","ขา","🦵"],["foot","เท้า","🦶"],["finger","นิ้วมือ","☝️"]]},
+ {id:"v8",aud:"all",title:"ครอบครัว",en:"Family",icon:"👨‍👩‍👧",words:[["mother","แม่","👩"],["father","พ่อ","👨"],["sister","พี่สาว / น้องสาว","👧"],["brother","พี่ชาย / น้องชาย","👦"],["grandmother","ยาย / ย่า","👵"],["grandfather","ตา / ปู่","👴"],["son","ลูกชาย","👦"],["daughter","ลูกสาว","👧"],["baby","เด็กทารก","👶"],["uncle","ลุง / น้า / อา (ชาย)","🧔"],["aunt","ป้า / น้า / อา (หญิง)","👩‍🦱"],["cousin","ลูกพี่ลูกน้อง","🧑‍🤝‍🧑"]]},
+ {id:"v9",aud:"all",title:"ในบ้าน",en:"At home",icon:"🏠",words:[["house","บ้าน","🏠"],["room","ห้อง","🚪"],["bed","เตียง","🛏️"],["door","ประตู","🚪"],["window","หน้าต่าง","🪟"],["table","โต๊ะ","🍽️"],["chair","เก้าอี้","🪑"],["kitchen","ห้องครัว","🍳"],["bathroom","ห้องน้ำ","🛁"],["sofa","โซฟา","🛋️"],["lamp","โคมไฟ","💡"],["television","โทรทัศน์","📺"]]},
+ {id:"v10",aud:"all",title:"เสื้อผ้า",en:"Clothes",icon:"👕",words:[["shirt","เสื้อเชิ้ต","👔"],["pants","กางเกงขายาว","👖"],["dress","ชุดกระโปรง","👗"],["skirt","กระโปรง","🩱"],["shoes","รองเท้า","👟"],["socks","ถุงเท้า","🧦"],["hat","หมวก","🧢"],["jacket","เสื้อแจ็กเก็ต","🧥"],["bag","กระเป๋า","👜"],["glasses","แว่นตา","👓"],["watch","นาฬิกาข้อมือ","⌚"],["uniform","เครื่องแบบ","🎽"]]},
+ {id:"v11",aud:"all",title:"ธรรมชาติและอากาศ",en:"Nature & weather",icon:"🌦️",words:[["sun","ดวงอาทิตย์","☀️"],["moon","ดวงจันทร์","🌙"],["star","ดาว","⭐"],["rain","ฝน","🌧️"],["cloud","เมฆ","☁️"],["wind","ลม","🌬️"],["tree","ต้นไม้","🌳"],["flower","ดอกไม้","🌸"],["river","แม่น้ำ","🏞️"],["sea","ทะเล","🌊"],["mountain","ภูเขา","⛰️"],["sky","ท้องฟ้า","🌌"]]},
+ {id:"v12",aud:"all",title:"เวลาและวัน",en:"Time & days",icon:"📅",words:[["today","วันนี้","📍"],["tomorrow","พรุ่งนี้","➡️"],["yesterday","เมื่อวาน","⬅️"],["morning","ตอนเช้า","🌅"],["afternoon","ตอนบ่าย","🌤️"],["evening","ตอนเย็น","🌇"],["night","กลางคืน","🌙"],["Monday","วันจันทร์","🟡"],["Sunday","วันอาทิตย์","🔴"],["week","สัปดาห์","🗓️"],["month","เดือน","📆"],["year","ปี","🎉"]]},
+ {id:"v13",aud:"all",title:"คำกริยาพื้นฐาน",en:"Action words",icon:"🏃",words:[["eat","กิน","🍽️"],["drink","ดื่ม","🥤"],["sleep","นอน","😴"],["walk","เดิน","🚶"],["run","วิ่ง","🏃"],["read","อ่าน","📖"],["write","เขียน","✍️"],["speak","พูด","🗣️"],["listen","ฟัง","👂"],["go","ไป","➡️"],["come","มา","⬅️"],["play","เล่น","🎮"]]},
+ {id:"v14",aud:"all",title:"คำบอกลักษณะ",en:"Describing words",icon:"🔍",words:[["big","ใหญ่","🐘"],["small","เล็ก","🐭"],["hot","ร้อน","🔥"],["cold","เย็น / หนาว","🧊"],["happy","มีความสุข","😊"],["sad","เศร้า","😢"],["fast","เร็ว","🐆"],["slow","ช้า","🐢"],["new","ใหม่","✨"],["old","เก่า / แก่","🏚️"],["beautiful","สวย","🌺"],["tall","สูง","🦒"]]},
+ {id:"v15",aud:"all",title:"สถานที่",en:"Places",icon:"🏙️",words:[["school","โรงเรียน","🏫"],["hospital","โรงพยาบาล","🏥"],["market","ตลาด","🧺"],["bank","ธนาคาร","🏦"],["shop","ร้านค้า","🏪"],["restaurant","ร้านอาหาร","🍴"],["park","สวนสาธารณะ","🌳"],["temple","วัด","🛕"],["airport","สนามบิน","🛫"],["station","สถานี","🚉"],["hotel","โรงแรม","🏨"],["office","สำนักงาน","🏢"]]},
+ {id:"v16",aud:"all",title:"การเดินทาง",en:"Getting around",icon:"🚗",words:[["car","รถยนต์","🚗"],["bus","รถบัส","🚌"],["train","รถไฟ","🚆"],["plane","เครื่องบิน","✈️"],["bike","จักรยาน","🚲"],["motorcycle","มอเตอร์ไซค์","🏍️"],["boat","เรือ","⛵"],["taxi","แท็กซี่","🚕"],["road","ถนน","🛣️"],["traffic","การจราจร","🚦"],["map","แผนที่","🗺️"],["ticket","ตั๋ว","🎫"]]},
+ {id:"v17",aud:"kid",title:"ของใช้ในโรงเรียน",en:"School things",icon:"🏫",words:[["book","หนังสือ","📕"],["pencil","ดินสอ","✏️"],["eraser","ยางลบ","🧽"],["ruler","ไม้บรรทัด","📏"],["bag","กระเป๋านักเรียน","🎒"],["desk","โต๊ะเรียน","🪑"],["teacher","คุณครู","🧑‍🏫"],["student","นักเรียน","🧑‍🎓"],["classroom","ห้องเรียน","🏫"],["homework","การบ้าน","📝"],["friend","เพื่อน","🧒"],["crayon","สีเทียน","🖍️"]]},
+ {id:"v18",aud:"kid",title:"ของเล่นและกีฬา",en:"Toys & sports",icon:"⚽",words:[["ball","ลูกบอล","⚽"],["doll","ตุ๊กตา","🧸"],["kite","ว่าว","🪁"],["robot","หุ่นยนต์","🤖"],["puzzle","จิ๊กซอว์","🧩"],["game","เกม","🎮"],["football","ฟุตบอล","🥅"],["basketball","บาสเกตบอล","🏀"],["swim","ว่ายน้ำ","🏊"],["draw","วาดรูป","🖍️"],["sing","ร้องเพลง","🎤"],["dance","เต้น","💃"]]},
+ {id:"v19",aud:"kid",title:"อาชีพ",en:"Jobs",icon:"👩‍⚕️",words:[["doctor","หมอ","🧑‍⚕️"],["nurse","พยาบาล","👩‍⚕️"],["teacher","ครู","🧑‍🏫"],["police","ตำรวจ","👮"],["farmer","ชาวนา","🧑‍🌾"],["cook","พ่อครัว / แม่ครัว","🧑‍🍳"],["driver","คนขับรถ","🚌"],["soldier","ทหาร","💂"],["engineer","วิศวกร","👷"],["singer","นักร้อง","🎤"],["pilot","นักบิน","🧑‍✈️"],["dentist","หมอฟัน","🦷"]]},
+ {id:"v20",aud:"adult",title:"ที่ทำงาน",en:"Office words",icon:"💼",words:[["meeting","การประชุม","👥"],["email","อีเมล","📧"],["report","รายงาน","📄"],["deadline","กำหนดส่ง","⏰"],["manager","ผู้จัดการ","🧑‍💼"],["team","ทีม","🤝"],["customer","ลูกค้า","🧑"],["project","โครงการ","📊"],["computer","คอมพิวเตอร์","💻"],["printer","เครื่องพิมพ์","🖨️"],["schedule","ตารางเวลา","🗓️"],["salary","เงินเดือน","💵"]]},
+ {id:"v21",aud:"adult",title:"ไอทีและคอมพิวเตอร์",en:"IT words",icon:"💻",words:[["password","รหัสผ่าน","🔑"],["login","เข้าสู่ระบบ","🔓"],["file","ไฟล์","📄"],["folder","โฟลเดอร์","📁"],["download","ดาวน์โหลด","⬇️"],["upload","อัปโหลด","⬆️"],["update","อัปเดต","🔄"],["screen","หน้าจอ","🖥️"],["keyboard","แป้นพิมพ์","⌨️"],["internet","อินเทอร์เน็ต","🌐"],["server","เซิร์ฟเวอร์","🗄️"],["data","ข้อมูล","📊"]]},
+ {id:"v22",aud:"adult",title:"คลังสินค้าและการขนส่ง",en:"Warehouse & logistics",icon:"📦",words:[["warehouse","คลังสินค้า","🏭"],["stock","สต็อกสินค้า","📦"],["order","คำสั่งซื้อ","🧾"],["delivery","การจัดส่ง","🚚"],["truck","รถบรรทุก","🚛"],["pallet","พาเลท","🪵"],["invoice","ใบแจ้งหนี้","📃"],["shipment","การขนส่งสินค้า","🚢"],["supplier","ผู้จัดหาสินค้า","🏢"],["label","ฉลาก / ป้าย","🏷️"],["scan","สแกน","📷"],["inventory","สินค้าคงคลัง","📋"]]},
+ {id:"v23",aud:"adult",title:"ความรู้สึกและสุขภาพ",en:"Feelings & health",icon:"🙂",words:[["tired","เหนื่อย","😩"],["sick","ไม่สบาย","🤒"],["headache","ปวดหัว","🤕"],["cough","ไอ","😷"],["fever","ไข้","🌡️"],["hungry","หิว","🍽️"],["thirsty","กระหายน้ำ","🥤"],["stressed","เครียด","😣"],["busy","ยุ่ง","📋"],["relaxed","ผ่อนคลาย","😌"],["angry","โกรธ","😠"],["worried","กังวล","😟"]]},
+ {id:"v24",aud:"adult",title:"ช็อปปิ้งและเงิน",en:"Shopping & money",icon:"🛒",words:[["price","ราคา","🏷️"],["cheap","ถูก","👌"],["expensive","แพง","💎"],["discount","ส่วนลด","🔖"],["money","เงิน","💰"],["cash","เงินสด","💵"],["card","บัตร","💳"],["receipt","ใบเสร็จ","🧾"],["size","ขนาด","📐"],["buy","ซื้อ","🛍️"],["sell","ขาย","🤝"],["change","เงินทอน","🪙"]]}
+];
+const vocabPacks=()=>VOCAB.filter(v=>v.aud==="all"||v.aud===P().track);
+const allPacks=()=>[...vocabPacks(),...NGSL_PACKS];
+/* hand-drawn pictures for words that have no matching emoji */
+const PICS={
+ papaya:"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M32 6c-2 0-3 2-3 4' stroke='#5d7a2a' stroke-width='3' fill='none' stroke-linecap='round'/><ellipse cx='32' cy='35' rx='18' ry='26' fill='#8bb33a'/><ellipse cx='32' cy='35' rx='15.5' ry='23.5' fill='#f97c2f'/><ellipse cx='32' cy='38' rx='7.5' ry='14' fill='#ffb070'/><g fill='#2a2320'><circle cx='29' cy='29' r='2'/><circle cx='35' cy='30' r='2'/><circle cx='31' cy='34' r='2'/><circle cx='34.5' cy='36' r='2'/><circle cx='29' cy='39' r='2'/><circle cx='33' cy='41' r='2'/><circle cx='30.5' cy='45' r='2'/><circle cx='34.5' cy='46' r='1.8'/></g></svg>",
+ durian:"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M32 4v8' stroke='#6b4f2a' stroke-width='3' stroke-linecap='round'/><g fill='#7a9a2e'><path d='M14 22l-6-4 3 8zM50 22l6-4-3 8zM10 36l-7 1 7 4zM54 36l7 1-7 4zM14 50l-6 4 8-1zM50 50l6 4-8-1zM24 13l-3-6 6 4zM40 13l3-6-6 4zM32 60l0 3'/></g><ellipse cx='32' cy='36' rx='21' ry='24' fill='#9cb83f'/><g fill='#7a9a2e'><path d='M22 22l3-5 3 5zM36 22l3-5 3 5zM16 34l3-5 3 5zM29 31l3-5 3 5zM42 34l3-5 3 5zM22 45l3-5 3 5zM36 45l3-5 3 5zM29 55l3-5 3 5z'/></g></svg>",
+ skirt:"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='20' y='10' width='24' height='7' rx='2' fill='#2f5f9e'/><path d='M20 17h24l12 38H8z' fill='#4a86d4'/><path d='M26 17l-6 38M32 17v38M38 17l6 38' stroke='#2f5f9e' stroke-width='2'/></svg>",
+ eraser:"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g transform='rotate(-20 32 32)'><rect x='8' y='22' width='48' height='22' rx='4' fill='#f48fb1'/><rect x='34' y='22' width='22' height='22' rx='4' fill='#4a86d4'/><rect x='34' y='22' width='6' height='22' fill='#4a86d4'/></g></svg>"
+};
+function picHtml(w,cls){
+  if(PICS[w[0]])return `<img class="${cls||"pic"} pic-img" alt="" src="data:image/svg+xml,${encodeURIComponent(PICS[w[0]])}">`;
+  return w[2]?`<span class="${cls||"pic"}">${w[2]}</span>`:"";
+}
+const WORDMAP=new Map();[...VOCAB.flatMap(v=>v.words),...NGSL,...COURSE.adult.flatMap(u=>u.words),...COURSE.kid.flatMap(u=>u.words)].forEach(w=>{if(!WORDMAP.has(w[0]))WORDMAP.set(w[0],w)});
+const BOX_DAYS=[0,1,3,7,14,30];
+const wstat=en=>(P().words||{})[en];
+function gradeWord(en,ok){
+  const p=P();p.words=p.words||{};const r=p.words[en]||{b:0,due:0,c:0,w:0};
+  if(ok){r.b=Math.min(5,r.b+1);r.c++;r.due=Date.now()+BOX_DAYS[r.b]*864e5}else{r.b=1;r.w++;r.due=Date.now()}
+  p.words[en]=r;save();
+}
+const known=en=>(wstat(en)?.b||0)>=2;
+const spellable=en=>/^[a-z]{3,9}$/.test(en);
+function pickWords(pack){
+  const g=w=>{const s=wstat(w[0]);return !s?0:s.b<2?1:2};
+  return shuffle(pack.words).sort((a,b)=>g(a)-g(b)).slice(0,6);
+}
+function buildVocabItems(ws){
+  const sp=ws.filter(w=>spellable(w[0]));
+  const items=[{t:"meaning",w:ws[0]},{t:"sayword",w:ws[0]},{t:"listen",w:ws[2]},{t:"reverse",w:ws[3]},
+    {t:"sayword",w:ws[3]},{t:"meaning",w:ws[4]},{t:"reverse",w:ws[5]},{t:"match",ws:shuffle(ws).slice(0,4)},
+    sp[0]?{t:"spell",w:sp[0]}:{t:"reverse",w:ws[0]},{t:"listen",w:ws[5]},sp[1]?{t:"spell",w:sp[1]}:{t:"reverse",w:ws[1]}];
+  return items;
+}
+function dueWords(){
+  const p=P(),now=Date.now();
+  return Object.entries(p.words||{}).filter(([en,r])=>r.due<=now&&WORDMAP.has(en)).sort((a,b)=>a[1].b-b[1].b).map(([en])=>WORDMAP.get(en));
+}
+function startVocab(i,mode){
+  refillHearts();if(P().hearts<=0){showNoHearts();return}
+  const pack=allPacks()[i],ws=pickWords(pack);
+  const vItems=mode==="speak"?[...ws,...shuffle(pack.words.filter(w=>!ws.includes(w))).slice(0,2)].map(w=>({t:"sayword",w})):buildVocabItems(ws);L={kind:"vocab",u:pack,ui:i,pool:pack.words,items:vItems,idx:0,total:vItems.length,mistakes:0,retried:new Set(),xpEarned:0,answer:null,checked:false};
+  $("lesson").hidden=false;renderItem();
+}
+function startReview(){
+  refillHearts();if(P().hearts<=0){showNoHearts();return}
+  const ws=shuffle(dueWords().slice(0,10));if(!ws.length)return;
+  const types=["reverse","listen","meaning"];
+  const items=ws.map((w,i)=>({t:spellable(w[0])&&i%4===3?"spell":i%5===4?"sayword":types[i%3],w}));
+  L={kind:"review",u:{title:"ทบทวนคำศัพท์",id:"review"},ui:0,pool:ws.length>=4?ws:[...WORDMAP.values()],items,idx:0,total:items.length,mistakes:0,retried:new Set(),xpEarned:0,answer:null,checked:false};
+  $("lesson").hidden=false;renderItem();
+}
+function renderVocab(){
+  const packs=vocabPacks(),p=P();
+  const total=packs.reduce((n,v)=>n+v.words.length,0),kn=packs.reduce((n,v)=>n+v.words.filter(w=>known(w[0])).length,0);
+  const due=dueWords().length;
+  $("reviewText").textContent=due?`มี ${due} คำที่ถึงเวลาทบทวน ทบทวนวันละนิดจะจำได้นานขึ้น`:Object.keys(p.words||{}).length?"ยังไม่มีคำที่ต้องทบทวนตอนนี้ เรียนชุดใหม่ต่อได้เลย":"เริ่มเรียนชุดคำศัพท์ด้านล่าง คำที่เรียนแล้วจะวนกลับมาให้ทบทวนตามเวลา";
+  $("reviewBtn").disabled=!due;$("reviewBtn").textContent=due?`ทบทวน ${Math.min(due,10)} คำ`:"ทบทวน";
+  $("vCount").textContent=`จำได้แล้ว ${kn} จาก ${total} คำ`;$("vBar").style.width=(total?kn/total*100:0)+"%";
+  const packCard=(v,i)=>{const k=v.words.filter(w=>known(w[0])).length,seen=v.words.filter(w=>wstat(w[0])).length;
+    return `<div class="pack"><button class="pack-main" type="button" data-pack="${i}"><span class="pack-ic${v.num?" num":""}">${v.icon}</span><span class="pack-t">${esc(v.title)}</span><span class="pack-s">${esc(v.en)} · ${v.words.length} คำ</span>
+    <span class="goal"><i style="width:${k/v.words.length*100}%"></i></span><span class="pack-s">${k===v.words.length?"จำได้ครบแล้ว ♛":seen?`จำได้ ${k}/${v.words.length}`:"ยังไม่ได้เริ่ม"}</span></button><button class="pack-speak" type="button" data-speakpack="${i}">🎤 ฝึกพูด</button></div>`};
+  $("packs").innerHTML=packs.map((v,i)=>packCard(v,i)).join("");
+  $("ngslPacks").innerHTML=NGSL_PACKS.map((v,j)=>packCard(v,packs.length+j)).join("");
+  const nk=NGSL.filter(w=>known(w[0])).length;
+  $("nCount").textContent=`จำได้แล้ว ${nk.toLocaleString()} จาก ${NGSL.length.toLocaleString()} คำ`;$("nBar").style.width=(nk/NGSL.length*100)+"%";
+  renderWordList();
+}
+function renderWordList(){
+  const q=$("wordSearch").value.trim().toLowerCase(),p=P();
+  const rows=Object.entries(p.words||{}).filter(([en])=>WORDMAP.has(en)).map(([en,r])=>[WORDMAP.get(en),r])
+    .filter(([w])=>!q||w[0].toLowerCase().includes(q)||w[1].includes(q)).sort((a,b)=>a[0][0].localeCompare(b[0][0]));
+  $("wordList").innerHTML=rows.length?rows.map(([w,r])=>`<div class="wrow"><span class="wpic">${picHtml(w,"wpic-in")}</span><span class="wtxt"><b>${esc(w[0])}</b><span>${esc(w[1])}</span></span>
+    <span class="dots" title="ระดับความจำ ${r.b}/5">${[1,2,3,4,5].map(n=>`<i class="${n<=r.b?"on":""}"></i>`).join("")}</span><button class="say" type="button" data-say="${esc(w[0])}" aria-label="ฟัง ${esc(w[0])}">🔊</button></div>`).join("")
+    :`<p class="small">${q?"ไม่พบคำที่ค้นหา":"ยังไม่มีคำในคลัง เรียนชุดคำศัพท์แล้วคำจะมาอยู่ที่นี่ พร้อมจุดบอกว่าจำได้แค่ไหน"}</p>`;
+}
+
+/* ================= AI chat ================= */
+let turns=[],chatBusy=false,sample=null;
+const apiKey=()=>LS.get("tb_key","");
+function chatRules(){
+  const p=P(),u=units()[+$("chatUnit").value]||units()[0],kid=p.track==="kid";
+  return `You are a warm, patient English tutor for a Thai learner. ${kid?`The learner is a Thai child in primary grade ${p.grade} (ป.${p.grade}). Use very simple words for that grade and a playful, friendly tone.`:`The learner is a Thai adult BEGINNER. Use very short, simple sentences (max 8 words).`}
+Topic: ${u.en} (${u.title}). Try to use these words: ${u.words.map(w=>w[0]).join(", ")}.
+Rules:
+- Keep the conversation going: reply in 1 short English sentence, then ask 1 easy question.
+- If the learner writes Thai (e.g. "อยากพูดว่า..."), give the simple English sentence to say and ask them to say it back.
+- If their English has a mistake, show the corrected sentence and explain in 1 short Thai sentence. Fix at most 1-2 things. Always praise first. Never make them feel bad.
+- Give a pronunciation hint in Thai letters for hard words when useful (e.g. tired = ไท-เออร์ด).
+Answer EXACTLY in this format, nothing else:
+REPLY: <your English reply + question>
+TH: <natural Thai translation of REPLY>
+FIX: <corrected English sentence, or leave empty>
+FIXTH: <Thai translation of FIX, or leave empty>
+TIP: <short Thai explanation or pronunciation hint, or leave empty>
+STAR: <yes or no>`;
+}
+function parse(t){
+  const o={reply:"",th:"",fix:"",fixth:"",tip:"",star:false};let key=null;
+  for(const line of t.split("\n")){
+    const m=line.match(/^(REPLY|TH|FIX|FIXTH|TIP|STAR):\s*(.*)$/);
+    if(m){key=m[1];const v=m[2].trim();({REPLY:()=>o.reply=v,TH:()=>o.th=v,FIX:()=>o.fix=v,FIXTH:()=>o.fixth=v,TIP:()=>o.tip=v,STAR:()=>o.star=/yes/i.test(v)})[key]()}
+    else if(key&&line.trim()){if(key==="REPLY")o.reply+=" "+line.trim();if(key==="TIP")o.tip+=" "+line.trim();if(key==="TH")o.th+=" "+line.trim()}
+  }
+  if(!o.reply)o.reply=t.trim();return o;
+}
+function addMsg(me,html){const d=document.createElement("div");d.className="msg"+(me?" me":"");d.innerHTML=html;$("chatLog").appendChild(d);$("chatLog").scrollTop=$("chatLog").scrollHeight;return d}
+function botHtml(o,star){
+  return `<div class="bubble">${esc(o.reply)}${o.th?`<span class="th">${esc(o.th)}</span>`:""}</div>`+
+   (o.fix||o.tip?`<div class="fix">${o.fix?`<b>ลองพูดแบบนี้:</b> ${esc(o.fix)}${o.fixth?`<span class="th">${esc(o.fixth)}</span>`:""}`:""}${o.tip?`${o.fix?"<br>":""}${esc(o.tip)}`:""}</div>`:"")+
+   `<div class="tools"><button type="button" data-say="${esc(o.reply)}">🔊 ฟังอีกครั้ง</button>${o.fix?`<button type="button" data-say="${esc(o.fix)}">🔊 ฟังประโยคที่ถูก</button>`:""}${star?`<span style="color:var(--sun);font:500 13px var(--display)">+2 XP เก่งมาก!</span>`:""}</div>`;
+}
+function startChat(){
+  turns=[];$("chatLog").innerHTML="";const p=P(),u=units()[+$("chatUnit").value]||units()[0];
+  const hello=p.track==="kid"
+    ?{reply:`Hi ${p.name}! Let's talk about ${u.en.toLowerCase()}! Are you ready?`,th:`สวัสดี ${p.name}! มาคุยเรื่อง${u.title}กันนะ พร้อมไหม?`,tip:"ตอบว่า Yes, I am! ได้เลยนะ"}
+    :{reply:"Hello! How are you today?",th:"สวัสดีค่ะ วันนี้เป็นยังไงบ้าง?",tip:"ตอบง่ายๆ ว่า I am fine. หรือ I am tired. ก็ได้ค่ะ"};
+  addMsg(false,botHtml(hello,false));
+  turns.push({role:"assistant",content:`REPLY: ${hello.reply}\nTH: ${hello.th}\nFIX:\nFIXTH:\nTIP: ${hello.tip}\nSTAR: no`});
+}
+function renderChatUnits(){
+  const p=P();$("chatUnit").innerHTML=units().map((u,i)=>{const open=unitOpen(i);return open?`<option value="${i}">${u.icon} ${esc(u.title)}</option>`:""}).join("");
+}
+$("chatUnit").onchange=startChat;
+async function askAI(messages){
+  if(sample){const {text}=await sample(messages,{modelTier:"quick",cache:false});return text}
+  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":apiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({model:"claude-haiku-5-5",max_tokens:500,messages})});
+  const j=await res.json().catch(()=>({}));
+  if(!res.ok){const e=new Error(j.error?.message||res.statusText);e.status=res.status;throw e}
+  return (j.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("");
+}
+async function sendChat(text){
+  text=text.trim();if(!text||chatBusy)return;
+  addMsg(true,`<div class="bubble">${esc(text)}</div>`);$("chatInput").value="";
+  if(!sample&&!apiKey()){addMsg(false,`<div class="fix"><b>ยังคุยกับครู AI ไม่ได้</b> ต้องใส่ Claude API key ก่อน ที่แท็บ "ฉัน" ค่ะ ระหว่างนี้ไปเรียนบทเรียนได้ฟรีเลยนะ</div>`);return}
+  chatBusy=true;turns.push({role:"user",content:text});
+  const el=addMsg(false,`<div class="bubble" style="color:var(--muted);font-style:italic">กำลังคิด…</div>`);
+  try{
+    const out=await askAI([{role:"user",content:chatRules()},...turns]);const o=parse(out);turns.push({role:"assistant",content:out});
+    if(o.star){const p=P();p.xp+=2;const t=today();if(p.daily.day!==t)p.daily={day:t,xp:0};p.daily.xp+=2;save();renderStats()}
+    el.innerHTML=botHtml(o,o.star);say(o.reply);$("chatNote").className="note";$("chatNote").textContent="ถึงตาคุณแล้ว พิมพ์หรือกดไมค์ตอบได้เลย";
+  }catch(e){
+    turns.pop();el.remove();$("chatNote").className="note warn";
+    $("chatNote").textContent=e.code==="not_granted"?"ต้องกดอนุญาตให้หน้านี้ใช้ Claude ก่อนค่ะ":e.status===401?"API key ไม่ถูกต้อง ตรวจที่แท็บ \"ฉัน\" อีกครั้งนะคะ":e.status===429||e.code==="rate_limited"?"ส่งถี่เกินไป รอสักครู่แล้วลองใหม่นะคะ":"ครูตอบไม่ได้ตอนนี้ ลองส่งใหม่อีกครั้งนะคะ";
+  }finally{chatBusy=false}
+}
+$("chatForm").onsubmit=e=>{e.preventDefault();sendChat($("chatInput").value)};
+$("chatInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChat($("chatInput").value)}});
+$("chatLog").addEventListener("click",e=>{const b=e.target.closest("[data-say]");if(b)say(b.dataset.say)});
+let chatRec=null;
+if(!SR)$("chatMic").hidden=true;
+$("chatMic").onclick=()=>{
+  if(chatRec){chatRec.stop();return}
+  $("chatMic").classList.add("on");$("chatNote").className="note";$("chatNote").textContent=$("micLang").value==="th-TH"?"กำลังฟัง… พูดภาษาไทยได้เลย":"กำลังฟัง… พูดภาษาอังกฤษได้เลย";
+  chatRec=listen($("micLang").value,(t,fin)=>{$("chatInput").value=t;if(fin){chatRec&&chatRec.stop();sendChat(t)}},
+    ()=>{chatRec=null;$("chatMic").classList.remove("on")},err=>{$("chatNote").className="note warn";$("chatNote").textContent=micMsg(err)});
+};
+
+/* ================= me / settings ================= */
+function renderLooks(){
+  const p=P();
+  $("avPreview").innerHTML=avatarHtml(p,"av lg");
+  $("avList").innerHTML=AVATARS.map(a=>`<button class="sw emoji" type="button" data-av="${a}" aria-pressed="${p.avatar===a}">${a}</button>`).join("");
+  $("avBgList").innerHTML=AV_BG.map((c,i)=>`<button class="sw" type="button" data-avbg="${i}" aria-pressed="${(p.avbg||0)===i}" aria-label="สีพื้นแบบที่ ${i+1}"><span class="dot" style="background:${c}"></span></button>`).join("");
+  $("buddyStage").innerHTML=mascot("wave");
+  $("bColors").innerHTML=BUDDY_COLORS.map(c=>{const lock=p.xp<c.xp;return `<button class="sw" type="button" data-bc="${c.id}" aria-pressed="${p.buddy.color===c.id}" ${lock?"disabled":""}><span class="dot" style="background:${c.body}"></span>${lock?`🔒 ${c.xp} XP`:c.n}</button>`}).join("");
+  $("bAcc").innerHTML=BUDDY_ACC.map(a=>{const lock=p.xp<a.xp;return `<button class="sw" type="button" data-ba="${a.id}" aria-pressed="${p.buddy.acc===a.id}" ${lock?"disabled":""}>${lock?`🔒 ${a.n} ${a.xp} XP`:a.n}</button>`}).join("");
+  $("avatarBtn").innerHTML=avatarHtml(p);
+}
+function renderMe(){
+  const p=P();renderLooks();
+  $("profileList").innerHTML=profiles.map(x=>`<button class="pchip" type="button" data-p="${x.id}" aria-pressed="${x.id===p.id}">${avatarHtml(x)}${esc(x.name)}</button>`).join("");
+  draft={track:p.track};$("pName").value=p.name;$("pGrade").value=p.grade;showDraft();
+  $("delProfile").disabled=profiles.length<2;$("delProfile").title=profiles.length<2?"ต้องมีผู้เรียนอย่างน้อย 1 คน":"";$("delRow").hidden=true;
+  $("apiKey").value=apiKey();
+  if(sample){$("keyHelp").textContent="เปิดอยู่ในแอป Claude ครู AI ใช้บัญชี Claude ของคุณได้เลย ไม่ต้องใส่ key";}
+  const done=units().filter(u=>uprog(u)>=STEPS.length).length;
+  $("statsText").textContent=`เรียนไปแล้ว ${p.lessons||0} บทเรียน · ผ่าน ${done} จาก ${units().length} บท · จำคำศัพท์ได้ ${Object.values(p.words||{}).filter(r=>r.b>=2).length} คำ · XP รวม ${p.xp} · เรียนต่อเนื่องสูงสุดตอนนี้ ${p.streak} วัน`;
+  $("resetRow").innerHTML=`<button class="btn ghost small danger" type="button" id="resetBtn">ล้างความคืบหน้าของ ${esc(p.name)}</button>`;
+  $("resetBtn").onclick=askReset;
+}
+function askReset(){
+  $("resetRow").innerHTML=`<span class="small danger">ลบ XP มงกุฎ คำศัพท์ และวันต่อเนื่องของ ${esc(P().name)} ทั้งหมด?</span><button class="btn small bad" type="button" id="resetYes">ลบเลย</button><button class="btn ghost small" type="button" id="resetNo">ยกเลิก</button>`;
+  $("resetYes").onclick=()=>{const p=P();Object.assign(p,{xp:0,streak:0,lastDay:"",hearts:5,crowns:{},prog:{},daily:{day:"",xp:0},lessons:0,words:{}});save();refreshAll()};
+  $("resetNo").onclick=renderMe;
+}
+document.getElementById("meView").addEventListener("click",e=>{
+  const p=P(),b=e.target.closest("button");if(!b||b.disabled)return;
+  if(b.dataset.av){p.avatar=b.dataset.av}else if(b.dataset.avbg){p.avbg=+b.dataset.avbg}
+  else if(b.dataset.bc){p.buddy.color=b.dataset.bc}else if(b.dataset.ba){p.buddy.acc=b.dataset.ba}else return;
+  save();renderLooks();$("profileList").innerHTML=profiles.map(x=>`<button class="pchip" type="button" data-p="${x.id}" aria-pressed="${x.id===P().id}">${avatarHtml(x)}${esc(x.name)}</button>`).join("");
+  $("buddyHi").innerHTML=mascot("wave");const br=$("brand").querySelector(".mascot");if(br)br.outerHTML=mascot("happy");
+});
+$("avatarBtn").onclick=()=>document.querySelector('nav [data-tab="meView"]').click();
+$("profileList").onclick=e=>{const b=e.target.closest("[data-p]");if(!b)return;activeId=b.dataset.p;save();refreshAll()};
+let draft={track:"adult"};
+function showDraft(){$("tAdult").setAttribute("aria-pressed",draft.track==="adult");$("tKid").setAttribute("aria-pressed",draft.track==="kid");$("pGrade").hidden=draft.track!=="kid"}
+function markDirty(){$("saveNote").className="save-note warn";$("saveNote").textContent="ยังไม่ได้บันทึก"}
+$("pName").oninput=markDirty;$("pGrade").onchange=markDirty;
+$("tAdult").onclick=()=>{draft.track="adult";showDraft();markDirty()};
+$("tKid").onclick=()=>{draft.track="kid";showDraft();markDirty()};
+$("saveProfile").onclick=()=>{
+  const p=P(),name=$("pName").value.trim();
+  if(!name){$("saveNote").className="save-note warn";$("saveNote").textContent="ใส่ชื่อก่อนนะ";$("pName").focus();return}
+  const trackChanged=p.track!==draft.track;
+  p.name=name;p.track=draft.track;p.grade=$("pGrade").value;save();refreshAll();
+  $("saveNote").className="save-note";$("saveNote").textContent=trackChanged?"บันทึกแล้ว ✓ เปลี่ยนหลักสูตรแล้ว":"บันทึกแล้ว ✓";
+};
+$("delProfile").onclick=()=>{
+  if(profiles.length<2)return;const p=P();
+  $("delRow").hidden=false;
+  $("delRow").innerHTML=`<p>ลบ ${esc(p.name)} ใช่ไหม? XP คำศัพท์ และความคืบหน้าทั้งหมดของคนนี้จะหายไป กู้คืนไม่ได้</p><button class="btn small bad" type="button" id="delYes">ลบเลย</button><button class="btn ghost small" type="button" id="delNo">ยกเลิก</button>`;
+  $("delYes").onclick=()=>{const name=p.name;profiles=profiles.filter(x=>x.id!==p.id);activeId=profiles[0].id;save();refreshAll();$("saveNote").className="save-note";$("saveNote").textContent=`ลบ ${name} แล้ว`};
+  $("delNo").onclick=()=>{$("delRow").hidden=true};
+};
+$("addProfile").onclick=()=>{const p=newProfile("ผู้เรียนใหม่","kid");profiles.push(p);activeId=p.id;save();refreshAll();$("saveNote").className="save-note warn";$("saveNote").textContent="ตั้งชื่อแล้วกดบันทึกนะ";$("pName").focus();$("pName").select()};
+$("saveKey").onclick=()=>{LS.set("tb_key",$("apiKey").value.trim());$("keyHelp").textContent="บันทึก key แล้ว ไปที่แท็บ \"คุยกับครู\" ได้เลยค่ะ"};
+
+/* ================= tabs ================= */
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav button").forEach(x=>x.removeAttribute("aria-current"));b.setAttribute("aria-current","page");
+  document.querySelectorAll(".view").forEach(v=>v.hidden=v.id!==b.dataset.tab);
+  if(b.dataset.tab==="chatView"&&!$("chatLog").children.length)startChat();
+  if(b.dataset.tab==="meView")renderMe();
+  if(b.dataset.tab==="vocabView")renderVocab();
+});
+function refreshAll(){if($("buddyHi").innerHTML)$("buddyHi").innerHTML=mascot("wave");{const br=$("brand").querySelector(".mascot");if(br)br.outerHTML=mascot("happy")}renderStats();renderPath();renderVocab();renderChatUnits();startChat();renderMe()}
+["packs","ngslPacks"].forEach(id=>$(id).addEventListener("click",e=>{const sp=e.target.closest("[data-speakpack]");if(sp){startVocab(+sp.dataset.speakpack,"speak");return}const b=e.target.closest("[data-pack]");if(b)startVocab(+b.dataset.pack)}));
+$("reviewBtn").onclick=startReview;
+$("wordSearch").addEventListener("input",renderWordList);
+$("wordList").addEventListener("click",e=>{const b=e.target.closest("[data-say]");if(b)say(b.dataset.say)});
+
+/* ================= install (PWA) ================= */
+let deferred=null;
+const standalone=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+const inClaude=!!window.claude;
+if(!standalone&&!inClaude){
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(ios){$("installBanner").hidden=false;$("installText").textContent="ติดตั้งบน iPhone: เปิดใน Safari แตะปุ่มแชร์ ⬆️ แล้วเลือก \"เพิ่มไปยังหน้าจอโฮม\"";$("installBtn").hidden=true}
+}
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;$("installBanner").hidden=false});
+$("installBtn").onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice.catch(()=>{});deferred=null;$("installBanner").hidden=true};
+if("serviceWorker" in navigator&&location.protocol.startsWith("http")&&!inClaude){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+
+/* ================= boot ================= */
+$("buddyHi").innerHTML=mascot("wave");$("brand").insertAdjacentHTML("afterbegin",mascot("happy"));
+save();refreshAll();setInterval(renderStats,60000);
+(async()=>{try{sample=await window.claude?.use("sample")}catch{}if(sample)renderMe()})();
+</script>
+</body>
+</html>
