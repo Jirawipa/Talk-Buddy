@@ -37,7 +37,10 @@
   --sun:#FFCE3A; --sun-deep:#C99A12; --heart:#FF6B85;
   --good:#4ADE80; --good-soft:#123A28; --bad:#FF7B72; --bad-soft:#3E1C1C; --locked:#24395A; color-scheme:dark}
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;overflow-x:hidden;overscroll-behavior:none}
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+body{position:fixed;inset:0;width:100%}
+.lesson-in,.foot,main{overflow-x:hidden}
+.opt.shake{overflow:visible}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 button,.opt,.chip,.node,.pack,nav button,.sw,.say,.mic{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,select,textarea{font-size:max(16px,1em)}
@@ -112,7 +115,7 @@ nav button[aria-current="page"] b{transform:scale(1.15)}
 .btn.bad{background:var(--bad);box-shadow:0 4px 0 color-mix(in srgb,var(--bad) 70%,#000)}
 
 /* lesson overlay */
-.lesson{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:20;
+.lesson{position:fixed;inset:0;overflow:hidden;overscroll-behavior:none;background:var(--bg);display:flex;flex-direction:column;z-index:20;
   padding-top:env(safe-area-inset-top,0px)}
 .lesson[hidden]{display:none}
 .lesson-in{flex:1;min-height:0;display:flex;flex-direction:column;max-width:560px;width:100%;margin:0 auto}
@@ -120,7 +123,7 @@ nav button[aria-current="page"] b{transform:scale(1.15)}
 .x{border:0;background:none;font-size:24px;color:var(--muted);padding:4px 6px}
 .prog{flex:1;height:14px;background:var(--line);border-radius:999px;overflow:hidden}
 .prog i{display:block;height:100%;background:var(--good);border-radius:999px;transition:width .3s}
-.lbody{flex:1;min-height:0;overflow-y:auto;padding-block:8px 16px;display:flex;flex-direction:column;gap:16px}
+.lbody{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding-block:8px 16px;display:flex;flex-direction:column;gap:16px}
 .q{font:700 24px/1.35 var(--display);margin:0;text-wrap:balance}
 .sub{color:var(--muted);margin:-8px 0 0;font-size:14px}
 .card{display:flex;align-items:center;gap:14px;background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:14px 16px}
@@ -854,7 +857,7 @@ function renderFootCheck(){
 function enableCheck(v){L.answer=v;const b=$("checkBtn");if(b)b.disabled=v==null||v===""}
 
 function renderItem(){
-  setProg();L.answer=null;L.checked=false;
+  resetZoom();pinPage();setProg();L.answer=null;L.checked=false;
   if(L.idx>=L.items.length){finishLesson();return}
   const it=L.items[L.idx],B=$("lbody");
   if(it.t==="meaning"){
@@ -1019,7 +1022,7 @@ function showResult(ok,title,detail){
   window.speechSynthesis&&speechSynthesis.cancel();clearTimeout(L.sayT);
   if(ok===true){sfx("good");L.sayT=setTimeout(()=>say(pick(PRAISE),1),sfxOn()?420:0)}
   else if(ok===false){sfx("bad");L.sayT=setTimeout(()=>say(answerText?[pick(OOPS),answerText]:pick(OOPS),[1,+$("rateSel").value]),sfxOn()?1050:0)}
-  $("nextBtn").focus();
+  try{$("nextBtn").focus({preventScroll:true})}catch{}
 }
 function finishLesson(){
   const p=P(),u=L.u,perfect=L.mistakes===0,gain=10+L.xpEarned+(perfect?5:0);
@@ -1445,6 +1448,18 @@ function applyTheme(){
 document.querySelectorAll("[data-th]").forEach(b=>b.onclick=()=>{LS.set("tb_theme",b.dataset.th);applyTheme()});
 applyTheme();
 
+/* keep the app pinned to the screen: iOS can pan the whole page after focus, keyboard or mic prompts */
+function resetZoom(){
+  const vv=window.visualViewport;if(!vv||vv.scale<=1.01)return;
+  const m=document.querySelector('meta[name="viewport"]'),c=m.content;
+  m.content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover";
+  setTimeout(()=>{m.content=c;pinPage()},300);
+}
+function pinPage(){if(window.scrollX||window.scrollY)window.scrollTo(0,0);const l=$("lesson");if(l&&(l.scrollLeft||l.scrollTop)){l.scrollLeft=0;l.scrollTop=0}const li=document.querySelector(".lesson-in");if(li&&li.scrollLeft)li.scrollLeft=0}
+window.addEventListener("scroll",pinPage,{passive:true});
+$("lesson").addEventListener("scroll",pinPage,{passive:true});
+if(window.visualViewport){visualViewport.addEventListener("resize",()=>setTimeout(()=>{pinPage();if(!document.activeElement||!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))resetZoom()},80));visualViewport.addEventListener("scroll",()=>{if(!document.activeElement||!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))pinPage()})}
+document.addEventListener("focusout",()=>setTimeout(pinPage,60));
 /* stop iOS pinch / double-tap zoom so the app never ends up zoomed in */
 ["gesturestart","gesturechange"].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
 let lastTouch=0;document.addEventListener("touchend",e=>{const now=Date.now();if(now-lastTouch<320&&!e.target.closest("input,textarea,select"))e.preventDefault();lastTouch=now},{passive:false});
