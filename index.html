@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Talk Buddy</title>
 <script>try{var t=JSON.parse(localStorage.getItem("tb_theme")||'"light"');if(t!=="auto")document.documentElement.setAttribute("data-theme",t)}catch(e){document.documentElement.setAttribute("data-theme","light")}</script>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -37,7 +37,10 @@
   --sun:#FFCE3A; --sun-deep:#C99A12; --heart:#FF6B85;
   --good:#4ADE80; --good-soft:#123A28; --bad:#FF7B72; --bad-soft:#3E1C1C; --locked:#24395A; color-scheme:dark}
 *{box-sizing:border-box}
-html,body{height:100%;margin:0}
+html,body{height:100%;margin:0;overflow-x:hidden;overscroll-behavior:none}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+button,.opt,.chip,.node,.pack,nav button,.sw,.say,.mic{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,select,textarea{font-size:max(16px,1em)}
 body{background:var(--bg);color:var(--ink);font:500 17px/1.6 var(--body);-webkit-tap-highlight-color:transparent;overflow:hidden}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
@@ -712,7 +715,7 @@ $("path").addEventListener("click",e=>{const b=e.target.closest("[data-unit]");i
 let voices=[];
 const FEM=/female|samantha|zira|aria|jenny|google us english|karen|moira|tessa|victoria|susan|serena|ava|allison|libby|sonia|emma|michelle|natasha|hazel|catherine/i;
 const MALE=/(^|\W)male|david|mark|guy|daniel|alex|fred|tom|ryan|christopher|eric|aaron|george|james|ravi|andrew|brian|roger|steffan|thomas/i;
-const VSTYLE={woman:{n:"ผู้หญิง",g:"f",pitch:1.05},man:{n:"ผู้ชาย",g:"m",pitch:0.95},boy:{n:"เด็กผู้ชาย",g:"m",pitch:1.65,rate:1.05},girl:{n:"เด็กผู้หญิง",g:"f",pitch:1.55,rate:1.05}};
+const VSTYLE={woman:{n:"ผู้หญิง",g:"f",pitch:1.05},man:{n:"ผู้ชาย",g:"m",pitch:0.95},boy:{n:"เด็กผู้ชาย",g:"m",pitch:1.45,rate:1.05},girl:{n:"เด็กผู้หญิง",g:"f",pitch:1.4,rate:1.05}};
 function loadVoices(){
   if(!("speechSynthesis" in window))return;
   voices=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));
@@ -729,36 +732,49 @@ function pickVoice(g){
   const re=g==="m"?MALE:FEM,pref=voices.filter(v=>re.test(v.name)&&!(g==="m"&&FEM.test(v.name)));
   return pref.find(v=>/en[-_]US/i.test(v.lang))||pref[0]||voices.find(v=>/en[-_]US/i.test(v.lang))||voices[0];
 }
+let sayT=null,micEndedAt=0;
 function say(text,rate,styleId){
   if(!("speechSynthesis" in window)||!text)return;
+  if(micBusy)return;
   const st=VSTYLE[styleId||$("vStyle").value]||VSTYLE.woman;
-  speechSynthesis.cancel();const v=pickVoice(st.g);
-  (Array.isArray(text)?text:[text]).forEach((tx,k)=>{const u=new SpeechSynthesisUtterance(fixSpeech(tx));
-    if(v){u.voice=v;u.lang=v.lang}else u.lang="en-US";
-    u.pitch=st.pitch;u.rate=(Array.isArray(rate)?rate[k]:rate||+$("rateSel").value)*(st.rate||1);speechSynthesis.speak(u)});
+  clearTimeout(sayT);const wasBusy=speechSynthesis.speaking||speechSynthesis.pending;speechSynthesis.cancel();
+  if(AC&&AC.state==="running"&&!sfxPlaying())acSleep();
+  const wait=Math.max(wasBusy?120:0,micEndedAt?450-(Date.now()-micEndedAt):0);
+  const go=()=>{const v=pickVoice(st.g);
+    (Array.isArray(text)?text:[text]).forEach((tx,k)=>{const u=new SpeechSynthesisUtterance(fixSpeech(tx));
+      if(v){u.voice=v;u.lang=v.lang}else u.lang="en-US";u.volume=1;
+      u.pitch=st.pitch;u.rate=(Array.isArray(rate)?rate[k]:rate||+$("rateSel").value)*(st.rate||1);speechSynthesis.speak(u)});
+    if(speechSynthesis.paused)speechSynthesis.resume();};
+  wait>0?(sayT=setTimeout(go,wait)):go();
 }
 /* words that speech engines read wrongly when spoken alone (e.g. "I" as the letter or Roman numeral one) */
 const SOLO={"i":"eye","a":"uh","i'm":"I'm","i'll":"I'll"};
 function fixSpeech(tx){
   const t=String(tx).trim(),bare=t.replace(/[.,!?;:]+$/,"");
   if(/^\S+$/.test(bare)&&SOLO[bare.toLowerCase()])return SOLO[bare.toLowerCase()];
-  if(/^\S+$/.test(t))return bare;
+  if(/^\S+$/.test(t))return t.replace(/[.,;:]+$/,"");
   return t;
 }
 /* sound effects: built with Web Audio, no files needed */
-let AC=null;
+let AC=null,MASTER=null,sfxUntil=0,sfxStopT=null;
+function acSleep(){try{AC&&AC.suspend&&AC.suspend().catch(()=>{})}catch{}}
+const sfxPlaying=()=>Date.now()<sfxUntil;
 const sfxOn=()=>LS.get("tb_sfx",true);
 function sfx(kind){
-  if(!sfxOn())return;
-  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume()}catch{return}
+  if(!sfxOn()||micBusy)return;
+  try{if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();MASTER=AC.createGain();MASTER.gain.value=.9;
+      if(AC.createDynamicsCompressor){const comp=AC.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=6;MASTER.connect(comp);comp.connect(AC.destination)}else MASTER.connect(AC.destination)}
+    if(AC.state!=="running")AC.resume()}catch{return}
+  const len=kind==="win"?1.5:kind==="bad"?1.3:.7;sfxUntil=Date.now()+len*1000;
+  clearTimeout(sfxStopT);sfxStopT=setTimeout(()=>{if(!sfxPlaying()&&AC&&AC.state==="running")acSleep()},len*1000+150);
   const t0=AC.currentTime+.02;
   const note=(f,start,dur,type,vol,glide)=>{const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t0+start);
     if(glide)o.frequency.exponentialRampToValueAtTime(glide,t0+start+dur);
     g.gain.setValueAtTime(.0001,t0+start);g.gain.exponentialRampToValueAtTime(vol,t0+start+.02);g.gain.exponentialRampToValueAtTime(.0001,t0+start+dur);
-    o.connect(g);g.connect(AC.destination);o.start(t0+start);o.stop(t0+start+dur+.05)};
-  if(kind==="good"){[523.25,659.25,783.99,1046.5].forEach((f,i)=>note(f,i*.08,.24,"triangle",.22));note(2093,.34,.3,"sine",.06)}
-  else if(kind==="bad"){note(392,0,.3,"sawtooth",.06,370);note(349.2,.32,.3,"sawtooth",.06,330);note(311.1,.64,.6,"sawtooth",.06,247)}
-  else if(kind==="win"){[523.25,659.25,783.99,1046.5,783.99,1046.5].forEach((f,i)=>note(f,i*.13,i===5?.7:.2,"square",.07));[261.6,329.6,392].forEach(f=>note(f,.65,.7,"triangle",.08))}
+    o.connect(g);g.connect(MASTER);o.start(t0+start);o.stop(t0+start+dur+.05)};
+  if(kind==="good"){[523.25,659.25,783.99,1046.5].forEach((f,i)=>note(f,i*.08,.24,"triangle",.22));note(2093,.34,.3,"sine",.08)}
+  else if(kind==="bad"){note(392,0,.3,"triangle",.24,370);note(349.2,.32,.3,"triangle",.24,330);note(311.1,.64,.6,"triangle",.24,247)}
+  else if(kind==="win"){[523.25,659.25,783.99,1046.5,783.99,1046.5].forEach((f,i)=>note(f,i*.13,i===5?.7:.2,"triangle",.22));[261.6,329.6,392].forEach(f=>note(f,.65,.7,"triangle",.1))}
 }
 const PRAISE=["Good job!","Perfect!","Great!","Awesome!","Well done!","Yay! You got it!","Excellent!","Super!"];
 const OOPS=["Oh no!","Oops!","Not quite.","Almost!"];
@@ -768,11 +784,13 @@ $("testGood").onclick=()=>{const on=sfxOn();LS.set("tb_sfx",true);sfx("good");LS
 $("testBad").onclick=()=>{const on=sfxOn();LS.set("tb_sfx",true);sfx("bad");LS.set("tb_sfx",on);setTimeout(()=>say(pick(OOPS),1),1050)};
 $("testVoice").onclick=()=>say("Hello! I am your English buddy. Let's learn together!");
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let micBusy=false;
 function listen(lang,onText,onEnd,onErr){
-  const rec=new SR();rec.lang=lang;rec.interimResults=true;rec.maxAlternatives=1;
+  clearTimeout(sayT);window.speechSynthesis&&speechSynthesis.cancel();if(AC&&AC.state==="running")acSleep();
+  const rec=new SR();rec.lang=lang;rec.interimResults=true;rec.maxAlternatives=1;micBusy=true;
   rec.onresult=e=>{const t=[...e.results].map(r=>r[0].transcript).join(" ");onText(t,e.results[e.results.length-1].isFinal)};
-  rec.onerror=e=>onErr&&onErr(e.error);rec.onend=()=>onEnd&&onEnd();
-  try{rec.start()}catch{onEnd&&onEnd()}return rec;
+  rec.onerror=e=>{micBusy=false;micEndedAt=Date.now();onErr&&onErr(e.error)};rec.onend=()=>{micBusy=false;micEndedAt=Date.now();onEnd&&onEnd()};
+  try{rec.start()}catch{micBusy=false;onEnd&&onEnd()}return rec;
 }
 const norm=t=>t.toLowerCase().replace(/’/g,"'").replace(/\bi'm\b/g,"i am").replace(/\bisn't\b/g,"is not").replace(/\blet's\b/g,"let us").replace(/[^a-z0-9' ]/g," ").split(/\s+/).filter(Boolean);
 function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let prev=[...Array(n+1).keys()];for(let i=1;i<=m;i++){const cur=[i];for(let j=1;j<=n;j++)cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev=cur}return prev[n]}
@@ -1403,7 +1421,16 @@ if(!standalone&&!inClaude){
   const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
   if(ios){$("installBanner").hidden=false;$("installText").textContent="ติดตั้งบน iPhone: เปิดใน Safari แตะปุ่มแชร์ ⬆️ แล้วเลือก \"เพิ่มไปยังหน้าจอโฮม\"";$("installBtn").hidden=true}
 }
-window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;$("installBanner").hidden=false});
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;$("installBanner").hidden=false;$("installBtn").hidden=false;$("installText").textContent="ติดตั้ง Talk Buddy ไว้ในเครื่อง จะเปิดได้เหมือนแอป"});
+window.addEventListener("appinstalled",()=>{$("installBanner").hidden=true});
+if(!standalone&&!inClaude&&!/iphone|ipad|ipod/i.test(navigator.userAgent))setTimeout(()=>{
+  if(deferred)return;const ua=navigator.userAgent,b=$("installBanner"),t=$("installText");
+  if(location.protocol==="file:"){b.hidden=false;$("installBtn").hidden=true;t.textContent="ตอนนี้เปิดจากไฟล์ในเครื่อง เลยติดตั้งเป็นแอปไม่ได้ ให้เปิดผ่านลิงก์ jirawipa.github.io/talk-buddy หรือดับเบิลคลิก start-app.bat แทน";return}
+  b.hidden=false;$("installBtn").hidden=true;
+  t.textContent=/Edg\//.test(ua)?"ติดตั้งบนคอม (Edge): กดเมนู ⋯ มุมขวาบน → แอป → ติดตั้งไซต์นี้เป็นแอป ถ้าติดตั้งไว้แล้ว ดูได้ที่เมนู Start ของ Windows"
+    :/Android/i.test(ua)?"ติดตั้งบน Android: แตะเมนู ⋮ → ติดตั้งแอป หรือ เพิ่มลงในหน้าจอหลัก"
+    :"ติดตั้งบนคอม (Chrome): กดไอคอนจอมีลูกศร ⊕ ท้ายช่อง URL หรือเมนู ⋮ → แคสต์ บันทึก และแชร์ → ติดตั้งหน้าเป็นแอป ถ้าติดตั้งไว้แล้ว เปิดจากเมนู Start หรือ chrome://apps";
+},2500);
 $("installBtn").onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice.catch(()=>{});deferred=null;$("installBanner").hidden=true};
 if("serviceWorker" in navigator&&location.protocol.startsWith("http")&&!inClaude){navigator.serviceWorker.register("sw.js").catch(()=>{})}
 
@@ -1417,6 +1444,10 @@ function applyTheme(){
 }
 document.querySelectorAll("[data-th]").forEach(b=>b.onclick=()=>{LS.set("tb_theme",b.dataset.th);applyTheme()});
 applyTheme();
+
+/* stop iOS pinch / double-tap zoom so the app never ends up zoomed in */
+["gesturestart","gesturechange"].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+let lastTouch=0;document.addEventListener("touchend",e=>{const now=Date.now();if(now-lastTouch<320&&!e.target.closest("input,textarea,select"))e.preventDefault();lastTouch=now},{passive:false});
 
 /* ================= boot ================= */
 $("buddyHi").innerHTML=mascot("wave");$("brand").insertAdjacentHTML("afterbegin",mascot("happy"));
